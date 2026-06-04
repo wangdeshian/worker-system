@@ -170,10 +170,14 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   .hdr-title{font-size:14px;}
   .hdr-sub{display:none;}
   .hdr-r{width:100%;justify-content:space-between;margin-top:8px;}
-  .gsum, .fsum, .csum { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px; }
-  .gsum > div:last-child, .fsum > div:last-child, .csum > div:last-child { grid-column:1 / -1; display:flex; justify-content:space-between; flex-direction:row !important; align-items:center !important; margin:0;}
-  .gc, .fc, .cst { min-width:0; padding:8px 6px; }
+  
+  /* 將原本的 Grid 多宮格改為單列橫向滑動，避免吃掉垂直高度 */
+  .gsum, .fsum, .csum { display:flex; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:10px; scrollbar-width:none; /* Firefox */ }
+  .gsum::-webkit-scrollbar, .fsum::-webkit-scrollbar, .csum::-webkit-scrollbar { display:none; /* Chrome/Safari */ }
+  .gsum > div:last-child, .fsum > div:last-child, .csum > div:last-child { flex-shrink:0; display:flex; align-items:center; }
+  .gc, .fc, .cst { flex:0 0 auto; min-width:85px; padding:8px 6px; }
   .fc .num, .gc .num, .cst .n { font-size:18px; }
+  
   .log-box { width:90%; padding:24px 20px; }
   .glabels { width:100px; font-size: 10px;}
   .glhdr { padding: 0 6px; }
@@ -185,7 +189,6 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   #total-badge { display:none; }
 }
 @media(max-width:480px){
-  .gsum, .fsum, .csum { grid-template-columns:1fr; }
   .tabs { padding:0; }
   .tab { padding:8px 10px; font-size:11px; } 
 }
@@ -195,8 +198,8 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   <div class="log-box">
     <h2>聯捷人力 系統登入</h2>
     <div id="log-err" class="log-err">⚠️ 帳號或密碼錯誤</div>
-    <input type="text" id="log-acc" placeholder="輸入帳號 ">
-    <input type="password" id="log-pwd" placeholder="輸入密碼 " onkeypress="if(event.key==='Enter')doLogin()">
+    <input type="text" id="log-acc" placeholder="輸入帳號 (預設: admin)">
+    <input type="password" id="log-pwd" placeholder="輸入密碼 (預設: 123456)" onkeypress="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">登 入</button>
   </div>
 </div>
