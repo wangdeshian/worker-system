@@ -297,14 +297,17 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 </div></div>
 <div class="g-tip" id="g-tip"></div><div class="toast" id="toast"></div>
 <script>
-// ── Firebase ──────────────────────────────────────────────────────────────────
-firebase.initializeApp({apiKey:"AIzaSyCx-VIbaa7Nuy-9cneNazUYUvnPkLAvdzo",authDomain:"workersystem-86ecc.firebaseapp.com",projectId:"workersystem-86ecc",storageBucket:"workersystem-86ecc.firebasestorage.app",messagingSenderId:"1040764002540",appId:"1:1040764002540:web:20ab316d69313ffba185c9"});
-const db=firebase.firestore(),COL='workers';
+// ── Firebase 防護升級版 ──────────────────────────────────────────────────────────
+let db = null;
+const COL = 'workers';
+
 function docId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
 function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(tp==='err'?'err':tp==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(tp!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
-async function fbSave(w){try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
-async function fbDel(w){try{await db.collection(COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
+
+async function fbSave(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
+async function fbDel(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
 async function fbBatchReplace(list){
+  if(!db)return;
   showFbSt('上傳中…','sync');
   try{
     const snap=await db.collection(COL).get();const b=db.batch();snap.docs.forEach(d=>b.delete(d.ref));await b.commit();
@@ -312,20 +315,27 @@ async function fbBatchReplace(list){
     showFbSt('✅ 已同步 '+list.length+' 筆');
   }catch(e){showFbSt('批次失敗','err');}
 }
+
 function showOfflineBtn(reason){
   document.querySelector('#fbl .msg').textContent='⚠️ Firebase 連線失敗';
-  document.querySelector('#fbl .sub').textContent=reason||'請至 Firestore 規則設 allow read,write:if true 後發布';
+  document.querySelector('#fbl .sub').textContent=reason||'請檢查網路狀態或關閉阻擋廣告擴充功能';
   document.querySelector('#fbl .sub').style.color='#c0392b';
   if(!document.getElementById('ob')){
     const b=document.createElement('button');b.id='ob';b.className='btn btn-p';
-    b.textContent='以離線模式繼續（不儲存雲端）';
+    b.textContent='以離線模式繼續（本次操作不儲存雲端）';
     b.onclick=()=>{document.getElementById('fbl').style.display='none';computeDynamic();updateStats();filt();if(!workers.length)setTimeout(()=>{showToast('📥 請上傳 Excel');openImport();},400);};
     document.getElementById('fbl').appendChild(b);
   }
 }
+
 async function loadFB(){
-  const timer=setTimeout(()=>showOfflineBtn('連線逾時 — 請至 Firestore 規則設 allow read,write:if true 後發布'),4000);
+  const timer=setTimeout(()=>showOfflineBtn('連線逾時 — 網路異常或被瀏覽器阻擋'),4000);
   try{
+    if(typeof firebase === 'undefined') throw new Error('Firebase 核心未載入 (請檢查網路或擋廣告外掛)');
+    if(!firebase.apps.length) {
+      firebase.initializeApp({apiKey:"AIzaSyCx-VIbaa7Nuy-9cneNazUYUvnPkLAvdzo",authDomain:"workersystem-86ecc.firebaseapp.com",projectId:"workersystem-86ecc",storageBucket:"workersystem-86ecc.firebasestorage.app",messagingSenderId:"1040764002540",appId:"1:1040764002540:web:20ab316d69313ffba185c9"});
+    }
+    db = firebase.firestore();
     const snap=await db.collection(COL).get();
     clearTimeout(timer);
     workers=snap.empty?[]:snap.docs.map(d=>d.data());
@@ -334,7 +344,9 @@ async function loadFB(){
     document.getElementById('fbl').style.display='none';
     computeDynamic();updateStats();filt();
     if(!workers.length)setTimeout(()=>{showToast('📥 尚無資料，請上傳 Excel');openImport();},600);
-  }catch(e){clearTimeout(timer);showOfflineBtn(e.message||'連線失敗');}
+  }catch(e){
+    clearTimeout(timer);showOfflineBtn(e.message||'連線失敗');
+  }
 }
 // ── Data ──────────────────────────────────────────────────────────────────────
 let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
@@ -459,19 +471,9 @@ function buildRec(w){
   const recs=w.records||[];const today=new Date().toLocaleDateString('zh-TW');
   const list=!recs.length?'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無紀錄</div>'
     :recs.map((r,i)=>'<div class="rec-item type-'+r.type+'"><div class="rec-meta"><span class="rec-date">'+r.date+'</span><span class="rec-type rec-type-'+r.type+'">'+r.type+'</span></div><div class="rec-content">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div><button class="rec-del" onclick="delRec('+w.id+','+i+')" title="刪除">✕</button></div>').join('');
-  return'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1"><option value="電話">📞 電話</option>
-<option value="訪視">🏠 訪視</option>
-<option value="問題">⚠️ 問題</option>
-<option value="回報">📋 回報</option>
-<option value="離境">✈️ 離境</option>
-<option value="解約驗證">📄 解約驗證</option>
-<option value="想轉換雇主">🔄 想轉換雇主</option>
-<option value="雇主想換">👤 雇主想換</option>
-<option value="服務費欠費">💸 服務費欠費</option>
-<option value="想重入國">🛬 想重入國</option>
-<option value="薪資問題">💰 薪資問題</option>
-<option value="其他">📝 其他</option></select><span style="font-size:11px;color:var(--m)">'+today+'</span></div><textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
+  return'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1"><option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option></select><span style="font-size:11px;color:var(--m)">'+today+'</span></div><textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
 }
+
 function addRec(wid){
   const w=workers.find(x=>x.id===wid);if(!w)return;if(!w.records)w.records=[];
   const type=document.getElementById('rec-type').value,txt=document.getElementById('rec-txt').value.trim();
@@ -495,7 +497,7 @@ function applyBatch(){
   cov('ov-batch');sel.clear();computeDynamic();filt();updateStats();showToast('✅ 批次更新'+n+'筆');}
 function openAdd(){
   document.getElementById('add-form').innerHTML=FIELDS.map(([k,l])=>{
-    if(k==='takeover_code')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option value="">—</option>'+['承接','初招','遞補','重招'].map(v=>'<option>'+v+'</option>').join('')+'</select></div>';
+    if(k==='takeover_code')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option value="">—</option>'+['承接','初招','遞補','重招'].map(v=>'<option>'+v+'</option').join('')+'</select></div>';
     if(k==='nationality')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option>印</option><option>菲</option><option>越</option></select></div>';
     if(k==='gender')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option>女</option><option>男</option></select></div>';
     return'<div class="fld"><label>'+l+'</label><input type="text" id="a_'+k+'" placeholder="'+l+'"></div>';
