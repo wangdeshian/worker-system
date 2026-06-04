@@ -331,17 +331,32 @@ async function fbBatchReplace(list){
   }catch(e){showFbSt('批次失敗:'+e.message,'err');}
 }
 async function loadFB(){
+  // 10秒超時保護
+  const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('連線逾時，請確認 Firestore 已建立')),10000));
   try{
-    const snap=await db.collection(COL).get();
+    const snap=await Promise.race([db.collection(COL).get(), timeout]);
     workers=snap.empty?[]:snap.docs.map(d=>d.data());
     document.getElementById('fb-ind').innerHTML='🟢 Firebase 已連線';
     document.getElementById('fb-ind').style.background='rgba(74,222,128,.25)';
-  }catch(e){document.getElementById('fb-ind').innerHTML='🔴 離線模式';showFbSt('Firebase 連線失敗','err');}
-  finally{
-    document.getElementById('fbl').style.display='none';
-    computeDynamic();updateStats();filt();
-    if(!workers.length)setTimeout(()=>{showToast('📥 尚無資料，請上傳 Excel');openImport();},600);
+  }catch(e){
+    document.getElementById('fb-ind').innerHTML='🔴 離線模式';
+    showFbSt('Firebase 連線失敗：'+e.message,'err');
+    // 顯示錯誤原因在 loading 畫面
+    document.querySelector('#fbl .msg').textContent='⚠️ Firebase 連線失敗';
+    document.querySelector('#fbl .sub').textContent=e.message;
+    document.querySelector('#fbl .sub').style.color='#c0392b';
+    // 加入「離線繼續」按鈕
+    if(!document.getElementById('offline-btn')){
+      const btn=document.createElement('button');
+      btn.id='offline-btn';btn.className='btn btn-p';btn.textContent='以離線模式繼續';
+      btn.onclick=()=>{document.getElementById('fbl').style.display='none';computeDynamic();updateStats();filt();if(!workers.length)setTimeout(()=>{showToast('📥 請上傳 Excel 匯入資料');openImport();},400);};
+      document.getElementById('fbl').appendChild(btn);
+    }
+    return; // 不自動關閉，等用戶點按鈕
   }
+  document.getElementById('fbl').style.display='none';
+  computeDynamic();updateStats();filt();
+  if(!workers.length)setTimeout(()=>{showToast('📥 尚無資料，請上傳 Excel');openImport();},600);
 }
 let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
 const PAGE=50,sel=new Set();let editId=null,impBuf=[];
