@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-TW"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>聯捷人力 — 移工客戶服務系統</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--p:#1a5fa8;--pl:#e8f0fb;--s:#1b8a4e;--w:#c47d00;--d:#c0392b;--bg:#f5f6fa;--cd:#fff;--b:#dde1ea;--t:#1e2330;--m:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;overflow:hidden;font-family:'Segoe UI','Microsoft JhengHei',sans-serif;font-size:13px;color:var(--t);background:var(--bg)}
+.hdr{background:var(--p);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0}
+.hdr-title{font-size:15px;font-weight:700}.hdr-sub{font-size:11px;opacity:.75;margin-top:1px}
+.hdr-r{margin-left:auto;display:flex;gap:7px;align-items:center}
+.badge{background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;font-size:11px}
+.tabs{background:var(--p);display:flex;padding:0 20px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,.15);overflow-x:auto}
+.tab{padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,.65);border-bottom:3px solid transparent;user-select:none;white-space:nowrap}
+.tab:hover{color:#fff}.tab.active{color:#fff;border-bottom-color:#fff}
+.btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:#154d8c}.btn-s{background:var(--s);color:#fff}
+.btn-w{background:var(--w);color:#fff}.btn-d{background:var(--d);color:#fff}
+.btn-wh{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}.btn-wh:hover{background:rgba(255,255,255,.25)}
+.btn-o{background:transparent;color:var(--p);border:1.5px solid var(--p)}.btn-o:hover{background:var(--pl)}.btn-sm{padding:3px 8px;font-size:11px}
+.page{display:none;flex:1;overflow:hidden;height:calc(100vh - 82px)}.page.active{display:flex}
+.sb{width:234px;background:var(--cd);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sb-sec{padding:11px 12px;border-bottom:1px solid var(--b)}.sb-sec h3{font-size:10px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:11px 12px;border-bottom:1px solid var(--b)}
+.sc{background:var(--bg);border-radius:7px;padding:8px;text-align:center}.sc .v{font-size:20px;font-weight:800;color:var(--p)}.sc .l{font-size:10px;color:var(--m);margin-top:2px}
+.sc.w .v{color:var(--w)}.sc.d .v{color:var(--d)}
+.fg{margin-bottom:8px}.fg label{font-size:11px;color:var(--m);display:block;margin-bottom:3px}
+.fg input,.fg select{width:100%;padding:5px 7px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg);color:var(--t)}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--p)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.tbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 12px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;flex-shrink:0}
+.tw{flex:1;overflow:auto}table{width:100%;border-collapse:collapse}
+thead th{background:#f0f2f8;position:sticky;top:0;z-index:5;padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--m);border-bottom:2px solid var(--b);white-space:nowrap;cursor:pointer}
+thead th:hover{background:#e4e8f5;color:var(--p)}tbody tr{border-bottom:1px solid var(--b);cursor:pointer}tbody tr:hover{background:var(--pl)}tbody tr.sel{background:#dbeafe}
+tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-block;padding:2px 6px;border-radius:9px;font-size:10px;font-weight:700}
+.chip-承接{background:#dbeafe;color:#1d4ed8}.chip-初招{background:#dcfce7;color:#166534}.chip-遞補{background:#fef9c3;color:#854d0e}.chip-重招{background:#fce7f3;color:#9d174d}
+.chip-印{background:#fff3e0;color:#e65100}.chip-菲{background:#e8f5e9;color:#2e7d32}.chip-越{background:#e3f2fd;color:#1565c0}
+.exp-t{color:var(--d);font-weight:700}.soon-t{color:var(--w);font-weight:700}
+.dp{width:340px;background:var(--cd);border-left:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transform:translateX(340px);transition:transform .25s}.dp.open{transform:translateX(0)}
+.dp-hdr{padding:11px 13px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}.dp-hdr h3{font-size:13px;font-weight:700}
+.dp-body{padding:13px;flex:1;overflow-y:auto}.dp-ftr{padding:9px 13px;border-top:1px solid var(--b);display:flex;gap:7px;flex-shrink:0}
+.fld{margin-bottom:11px}.fld label{font-size:10px;color:var(--m);display:block;margin-bottom:3px;font-weight:700;text-transform:uppercase}
+.fld input,.fld select{width:100%;padding:5px 8px;border:1px solid var(--b);border-radius:5px;font-size:12px}.fld input:focus,.fld select:focus{outline:none;border-color:var(--p)}
+.pag{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--cd);border-top:1px solid var(--b);flex-shrink:0}
+.pg{padding:3px 8px;border:1px solid var(--b);border-radius:4px;background:#fff;cursor:pointer;font-size:11px}.pg:hover{background:var(--pl);border-color:var(--p)}.pg.a{background:var(--p);color:#fff;border-color:var(--p)}.pg:disabled{opacity:.4;cursor:default}
+.rec-sec{margin-top:14px;border-top:2px solid var(--b);padding-top:12px}
+.rec-sec h4{font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.rec-list{display:flex;flex-direction:column;gap:7px;max-height:240px;overflow-y:auto;margin-bottom:10px}
+.rec-item{background:var(--bg);border-radius:6px;padding:8px 10px;border-left:3px solid var(--b);position:relative}
+.rec-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px}.rec-date{font-size:10px;color:var(--m);font-weight:600}.rec-type{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700}
+.rec-content{font-size:12px;color:var(--t);line-height:1.5;white-space:pre-wrap;word-break:break-all}
+.rec-del{position:absolute;top:6px;right:6px;background:none;border:none;color:#d1d5db;cursor:pointer;font-size:14px;line-height:1;padding:2px}.rec-del:hover{color:var(--d)}
+.rec-add{display:flex;flex-direction:column;gap:6px;background:#f8f9fc;border-radius:6px;padding:10px}
+.rec-add select,.rec-add textarea{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:#fff;resize:none}.rec-add textarea{height:60px}
+.rec-add-row{display:flex;gap:6px;align-items:center}.rec-cnt{background:#e8f0fb;color:var(--p);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.rec-item.type-電話,.crr.type-電話{border-left-color:#1a5fa8}
+.rec-item.type-訪視,.crr.type-訪視{border-left-color:#1b8a4e}
+.rec-item.type-問題,.crr.type-問題{border-left-color:#c0392b}
+.rec-item.type-回報,.crr.type-回報{border-left-color:#c47d00}
+.rec-item.type-離境,.crr.type-離境{border-left-color:#5b21b6}
+.rec-item.type-解約驗證,.crr.type-解約驗證{border-left-color:#9d174d}
+.rec-item.type-想轉換雇主,.crr.type-想轉換雇主{border-left-color:#0369a1}
+.rec-item.type-雇主想換,.crr.type-雇主想換{border-left-color:#166534}
+.rec-item.type-服務費欠費,.crr.type-服務費欠費{border-left-color:#991b1b}
+.rec-item.type-想重入國,.crr.type-想重入國{border-left-color:#065f46}
+.rec-item.type-薪資問題,.crr.type-薪資問題{border-left-color:#854d0e}
+.rec-item.type-其他,.crr.type-其他{border-left-color:#6b7280}
+.rec-type-電話,.cs-電話{background:#e8f0fb;color:#1a5fa8}
+.rec-type-訪視,.cs-訪視{background:#e8f5ee;color:#1b8a4e}
+.rec-type-問題,.cs-問題{background:#fde8e8;color:#c0392b}
+.rec-type-回報,.cs-回報{background:#fffbea;color:#c47d00}
+.rec-type-離境,.cs-離境{background:#ede9fe;color:#5b21b6}
+.rec-type-解約驗證,.cs-解約驗證{background:#fce7f3;color:#9d174d}
+.rec-type-想轉換雇主,.cs-想轉換雇主{background:#e0f2fe;color:#0369a1}
+.rec-type-雇主想換,.cs-雇主想換{background:#f0fdf4;color:#166534}
+.rec-type-服務費欠費,.cs-服務費欠費{background:#fef2f2;color:#991b1b}
+.rec-type-想重入國,.cs-想重入國{background:#ecfdf5;color:#065f46}
+.rec-type-薪資問題,.cs-薪資問題{background:#fef9c3;color:#854d0e}
+.rec-type-其他,.cs-其他{background:#f3f4f6;color:#6b7280}
+.gpage{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.gsum{display:flex;gap:10px;padding:10px 16px;background:var(--cd);border-bottom:1px solid var(--b);flex-shrink:0;align-items:center;flex-wrap:wrap}
+.gc{padding:9px 16px;border-radius:7px;text-align:center;min-width:100px}.gc .num{font-size:22px;font-weight:800}.gc .lbl{font-size:10px;font-weight:600;margin-top:2px}
+.gc-e{background:#fde8e8;color:#c0392b}.gc-u{background:#fff0ea;color:#e85c26}.gc-s{background:#fffbea;color:#c47d00}.gc-n{background:#e8f5ee;color:#1b8a4e}
+.gtbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.gtbar input,.gtbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
+.gouter{flex:1;display:flex;overflow:hidden}
+.glabels{width:220px;flex-shrink:0;display:flex;flex-direction:column;background:var(--cd);border-right:2px solid var(--b)}
+.glhdr{height:44px;flex-shrink:0;border-bottom:2px solid var(--b);display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:700;color:var(--m);background:#f0f2f8}
+.glbody{flex:1;overflow:hidden;scrollbar-width:none}.glbody::-webkit-scrollbar{display:none}.gright{flex:1;overflow:auto}
+#gcv{display:block;cursor:crosshair}.g-tip{position:fixed;background:#1e2330;color:#fff;padding:8px 12px;border-radius:7px;font-size:12px;pointer-events:none;z-index:200;display:none;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.gleg{display:flex;gap:14px;align-items:center;font-size:11px}.ldot{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:middle}
+.fpage{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.fsum{display:flex;gap:10px;padding:10px 16px;background:var(--cd);border-bottom:1px solid var(--b);flex-shrink:0;flex-wrap:wrap}
+.fc{padding:10px 18px;border-radius:7px;text-align:center;min-width:120px}.fc .num{font-size:22px;font-weight:800}.fc .lbl{font-size:10px;font-weight:600;margin-top:2px}
+.fc-t{background:#e8f0fb;color:var(--p)}.fc-a{background:#e8f5ee;color:var(--s)}.fc-1{background:#fff0ea;color:var(--w)}.fc-2{background:#fef9c3;color:#854d0e}.fc-3{background:#f0fdf4;color:#166534}
+.ftbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.ftbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
+.fbody{flex:1;display:flex;overflow:hidden}.fcw{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.ftw{width:400px;flex-shrink:0;border-left:1px solid var(--b);overflow-y:auto;background:var(--cd)}.ftbl{width:100%;border-collapse:collapse}
+.ftbl thead th{background:#f0f2f8;position:sticky;top:0;z-index:3;padding:7px 10px;font-size:11px;font-weight:700;color:var(--m);border-bottom:2px solid var(--b);text-align:right;white-space:nowrap}.ftbl thead th:first-child{text-align:left}
+.ftbl tbody tr{border-bottom:1px solid var(--b);cursor:pointer}.ftbl tbody tr:hover{background:var(--pl)}.ftbl tbody tr.fa{background:#dbeafe}
+.ftbl tbody td{padding:6px 10px;font-size:12px;text-align:right;white-space:nowrap}.ftbl tbody td:first-child{text-align:left;font-weight:600}
+.drill{background:var(--cd);border-top:1px solid var(--b);flex-shrink:0;max-height:220px;overflow-y:auto}
+.drill-hdr{padding:8px 14px;background:#f0f2f8;border-bottom:1px solid var(--b);font-size:12px;font-weight:700;position:sticky;top:0;z-index:2}
+.dtbl{width:100%;border-collapse:collapse;font-size:11px}.dtbl td,.dtbl th{padding:4px 10px;border-bottom:1px solid var(--b)}.dtbl th{background:#f8f9fc;font-weight:700;color:var(--m)}.dtbl td:last-child{text-align:right;font-weight:700}
+.cpage{flex:1;display:flex;flex-direction:column;overflow:hidden}.csum{display:flex;gap:8px;padding:9px 14px;background:var(--cd);border-bottom:1px solid var(--b);flex-shrink:0;flex-wrap:wrap;align-items:center}
+.cst{padding:6px 12px;border-radius:7px;text-align:center;min-width:70px}.cst .n{font-size:18px;font-weight:800}.cst .l{font-size:10px;font-weight:600;margin-top:1px}.cs-total{background:#e8f0fb;color:var(--p)}
+.cs-電話{background:#e8f0fb;color:#1a5fa8}
+.cs-訪視{background:#e8f5ee;color:#1b8a4e}
+.cs-問題{background:#fde8e8;color:#c0392b}
+.cs-回報{background:#fffbea;color:#c47d00}
+.cs-離境{background:#ede9fe;color:#5b21b6}
+.cs-解約驗證{background:#fce7f3;color:#9d174d}
+.cs-想轉換雇主{background:#e0f2fe;color:#0369a1}
+.cs-雇主想換{background:#f0fdf4;color:#166534}
+.cs-服務費欠費{background:#fef2f2;color:#991b1b}
+.cs-想重入國{background:#ecfdf5;color:#065f46}
+.cs-薪資問題{background:#fef9c3;color:#854d0e}
+.cs-其他{background:#f3f4f6;color:#6b7280}
+.ctbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.ctbar input,.ctbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
+.cbody{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.ccard{background:var(--cd);border-radius:8px;border:1px solid var(--b);overflow:hidden}.ccard:hover{box-shadow:0 3px 12px rgba(0,0,0,.1)}
+.cchdr{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--b);cursor:pointer;user-select:none}.cchdr:hover{background:var(--pl)}
+.cwinfo{flex:1;min-width:0}.cwname{font-size:13px;font-weight:700}.cwmeta{font-size:11px;color:var(--m);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbadge{display:flex;gap:5px;flex-shrink:0;align-items:center}.crcnt{background:#e8f0fb;color:var(--p);padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.cdate{font-size:10px;color:var(--m)}.ccbody{display:none;padding:10px 14px;flex-direction:column;gap:7px}.ccbody.open{display:flex}
+.crr{background:var(--bg);border-radius:6px;padding:8px 10px;border-left:3px solid var(--b);display:flex;gap:10px;align-items:flex-start}
+.cri{flex-shrink:0;text-align:right;min-width:80px}.cri .d{font-size:10px;color:var(--m);display:block}
+.crt{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;display:inline-block;margin-top:2px}.crc{font-size:12px;line-height:1.6;flex:1;word-break:break-all;white-space:pre-wrap}
+.cgo{font-size:11px;color:var(--p);cursor:pointer;white-space:nowrap;text-decoration:underline;flex-shrink:0}.cgo:hover{color:#154d8c}
+.tico{font-size:12px;color:var(--m);flex-shrink:0}.cempty{text-align:center;padding:60px 20px;color:var(--m);font-size:14px}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}.ov.open{display:flex}
+.modal{background:#fff;border-radius:10px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.mhdr{padding:14px 17px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center}.mhdr h3{font-size:14px;font-weight:700}.mbody{padding:17px}
+.mftr{padding:11px 17px;border-top:1px solid var(--b);display:flex;gap:7px;justify-content:flex-end}
+.xbtn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--m);line-height:1}.xbtn:hover{color:var(--d)}
+.sl{max-height:130px;overflow-y:auto;border:1px solid var(--b);border-radius:5px;padding:7px;font-size:12px}.sl div{padding:2px 0;border-bottom:1px solid var(--b)}.sl div:last-child{border-bottom:none}
+.iz{border:2px dashed var(--b);border-radius:7px;padding:26px;text-align:center;cursor:pointer}.iz:hover{border-color:var(--p);background:var(--pl)}
+.fbl{position:fixed;inset:0;background:rgba(255,255,255,.93);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.fbl .sp{width:44px;height:44px;border:4px solid #e8f0fb;border-top-color:var(--p);border-radius:50%;animation:spin .8s linear infinite}
+.fbl .msg{font-size:14px;color:var(--p);font-weight:600}.fbl .sub{font-size:12px;color:var(--m)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fbst{position:fixed;bottom:52px;right:16px;background:#1e2330;color:#fff;padding:6px 14px;border-radius:7px;font-size:11px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:190}.fbst.show{opacity:1}
+.fbdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:6px;vertical-align:middle}.fbdot.err{background:#f87171}.fbdot.syn{background:#fbbf24;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sb-tog{display:none;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;line-height:1}
+.sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:49}.sb-ov.open{display:block}
+@media(max-width:900px){.sb-tog{display:block}.sb{position:fixed;top:82px;left:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:4px 0 12px rgba(0,0,0,.15)}.sb.open{transform:translateX(0)}.dp{position:fixed;top:82px;right:0;bottom:0;z-index:50;width:min(340px,95vw)!important}.ftw{width:100%;border-left:none;border-top:1px solid var(--b);max-height:280px}}
+@media(max-width:600px){.hdr-title{font-size:13px}.hdr-sub{display:none}#total-badge{display:none}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e2330;color:#fff;padding:8px 18px;border-radius:7px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300}.toast.show{opacity:1}
+</style></head><body>
+<div class="fbl" id="fbl"><div class="sp"></div><div class="msg">連線 Firebase 中…</div><div class="sub">正在載入移工資料</div></div>
+<div class="fbst" id="fbst"></div><div class="sb-ov" id="sb-ov" onclick="toggleSB()"></div>
+<div class="hdr">
+  <button class="sb-tog" onclick="toggleSB()">☰</button>
+  <div><div class="hdr-title">聯捷人力仲介有限公司 — 移工客戶服務系統</div><div class="hdr-sub">在台移工管理平台</div></div>
+  <div class="hdr-r">
+    <span id="fb-ind" style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">🔴 連線中…</span>
+    <span class="badge" id="total-badge">共 0 筆</span>
+    <button class="btn btn-wh" onclick="openImport()">📥 匯入更新</button>
+    <button class="btn btn-wh" onclick="exportCSV()">📤 匯出 CSV</button>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('list',this)">📋 在台名單</div>
+  <div class="tab" onclick="switchTab('gantt',this)">📊 甘特圖</div>
+  <div class="tab" onclick="switchTab('fee',this)">💰 服務費試算</div>
+  <div class="tab" onclick="switchTab('crm',this)">📌 服務紀錄追蹤</div>
+</div>
+<!-- LIST -->
+<div class="page active" id="page-list">
+  <div class="sb" id="sidebar">
+    <div class="stats">
+      <div class="sc"><div class="v" id="st-t">0</div><div class="l">在台人數</div></div>
+      <div class="sc w"><div class="v" id="st-60">0</div><div class="l">60天內到期</div></div>
+      <div class="sc d"><div class="v" id="st-e">0</div><div class="l">已到期</div></div>
+      <div class="sc"><div class="v" id="st-tk">0</div><div class="l">承接件數</div></div>
+    </div>
+    <div class="sb-sec"><h3>篩選</h3>
+      <div class="fg"><label>搜尋</label><input type="text" id="q" placeholder="姓名／護照／雇主…" oninput="filt()"></div>
+      <div class="fg"><label>國籍</label><select id="f-nat" onchange="filt()"><option value="">全部</option><option value="印">印尼</option><option value="菲">菲律賓</option><option value="越">越南</option></select></div>
+      <div class="fg"><label>接管代碼</label><select id="f-tak" onchange="filt()"><option value="">全部</option><option>承接</option><option>初招</option><option>遞補</option><option>重招</option></select></div>
+      <div class="fg"><label>工作期限</label><select id="f-lim" onchange="filt()"><option value="">全部</option><option value="exp">已到期</option><option value="s60">60天內到期</option><option value="ok">正常</option></select></div>
+      <button class="btn btn-o" style="width:100%;margin-top:4px" onclick="clearFilt()">清除篩選</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="tbar">
+      <input type="checkbox" id="ck-all" onchange="toggleAll(this.checked)"><label for="ck-all" style="font-size:12px">全選</label>
+      <button class="btn btn-w" onclick="openBatch()">✏️ 批次更新</button><button class="btn btn-p" onclick="openAdd()">＋ 新增</button>
+      <button class="btn btn-d" id="btn-del" style="display:none" onclick="delSel()">🗑 刪除</button>
+      <span style="margin-left:auto;font-size:11px;color:var(--m)" id="sel-info"></span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:30px"><input type="checkbox" id="ck-all2" onchange="toggleAll(this.checked)"></th>
+        <th onclick="sortBy('name_en')">英文姓名 ↕</th><th onclick="sortBy('name_zh')">中文名</th>
+        <th onclick="sortBy('employer')">雇主 ↕</th><th>國籍</th>
+        <th onclick="sortBy('entry_date')">入境日 ↕</th><th onclick="sortBy('work_limit')">工作期限 ↕</th>
+        <th>接管代碼</th><th>護照號碼</th><th>護照到期</th><th>聘可文號</th><th>居留證號</th><th>操作</th>
+      </tr></thead><tbody id="tbody"></tbody>
+    </table></div>
+    <div class="pag" id="pag"></div>
+  </div>
+  <div class="dp" id="dp">
+    <div class="dp-hdr"><h3 id="dp-title">移工詳情</h3><button class="xbtn" onclick="closeDP()">×</button></div>
+    <div class="dp-body" id="dp-body"></div>
+    <div class="dp-ftr"><button class="btn btn-p" onclick="saveDP()" style="flex:1">儲存</button><button class="btn btn-o" onclick="closeDP()">取消</button></div>
+  </div>
+</div>
+<!-- GANTT -->
+<div class="page" id="page-gantt">
+  <div class="gpage">
+    <div class="gsum">
+      <div class="gc gc-e"><div class="num" id="ge-e">0</div><div class="lbl">已過期</div></div>
+      <div class="gc gc-u"><div class="num" id="ge-u">0</div><div class="lbl">緊急 0–30天</div></div>
+      <div class="gc gc-s"><div class="num" id="ge-s">0</div><div class="lbl">即將到期 31–180天</div></div>
+      <div class="gc gc-n"><div class="num" id="ge-n">0</div><div class="lbl">正常 &gt;180天</div></div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div class="gleg"><span><span class="ldot" style="background:#c0392b"></span>已過期</span><span><span class="ldot" style="background:#e85c26"></span>緊急</span><span><span class="ldot" style="background:#c47d00"></span>即將到期</span><span><span class="ldot" style="background:#1b8a4e"></span>正常</span></div>
+        <button class="btn btn-o btn-sm" onclick="exportGanttCSV()">📤 匯出CSV</button>
+      </div>
+    </div>
+    <div class="gtbar">
+      <input type="text" id="gq" placeholder="🔍 搜尋姓名／雇主" oninput="buildGantt()" style="width:180px">
+      <select id="gf" onchange="buildGantt()"><option value="">全部狀態</option><option value="expired">已過期</option><option value="urgent">緊急</option><option value="soon">即將到期</option><option value="normal">正常</option></select>
+      <select id="gs" onchange="buildGantt()"><option value="asc">剩餘天數↑（最緊急優先）</option><option value="desc">剩餘天數↓</option><option value="emp">雇主排序</option><option value="name">姓名排序</option></select>
+      <span id="gcnt" style="font-size:11px;color:var(--m)"></span>
+    </div>
+    <div class="gouter">
+      <div class="glabels"><div class="glhdr">雇主 / 移工姓名</div><div class="glbody" id="glbody"></div></div>
+      <div class="gright" id="gright" onscroll="syncGL(this)"><canvas id="gcv"></canvas></div>
+    </div>
+  </div>
+</div>
+<!-- FEE -->
+<div class="page" id="page-fee">
+  <div class="fpage">
+    <div class="fsum">
+      <div class="fc fc-t"><div class="num" id="fee-grand">NT$0</div><div class="lbl">總服務費合計</div></div>
+      <div class="fc fc-a"><div class="num" id="fee-avg">NT$0</div><div class="lbl">月平均服務費</div></div>
+      <div class="fc fc-1"><div class="num" id="f-c1">–</div><div class="lbl">本月 NT$900 人數</div></div>
+      <div class="fc fc-2"><div class="num" id="f-c2">–</div><div class="lbl">本月 NT$850 人數</div></div>
+      <div class="fc fc-3"><div class="num" id="f-c3">–</div><div class="lbl">本月 NT$750 人數</div></div>
+      <div style="margin-left:auto"><button class="btn btn-o btn-sm" onclick="exportFeeCSV()">📤 匯出CSV</button></div>
+    </div>
+    <div class="ftbar">
+      <label style="font-size:12px;color:var(--m)">顯示範圍：</label>
+      <select id="frange" onchange="renderFeeChart()"><option value="all">全部</option><option value="12">未來 12 個月</option><option value="24">未來 24 個月</option></select>
+      <span style="font-size:11px;color:var(--m)">點擊月份可查看該月明細</span>
+    </div>
+    <div class="fbody">
+      <div class="fcw" id="fcw"><canvas id="fcv" style="width:100%;cursor:pointer"></canvas>
+        <div class="drill" id="drill" style="display:none"><div class="drill-hdr" id="drill-hdr"></div>
+          <table class="dtbl"><thead><tr><th>移工姓名</th><th>雇主</th><th>在台月數</th><th>月費</th></tr></thead><tbody id="drill-body"></tbody></table>
+        </div>
+      </div>
+      <div class="ftw"><table class="ftbl">
+        <thead><tr><th>月份</th><th>人數</th><th style="color:#e85c26">$900</th><th style="color:#c47d00">$850</th><th style="color:#1b8a4e">$750</th><th>月合計</th></tr></thead>
+        <tbody id="ftbody"></tbody>
+        <tfoot style="background:#f0f2f8;position:sticky;bottom:0"><tr style="font-weight:700;font-size:12px"><td colspan="5" style="padding:7px 10px">總計</td><td style="padding:7px 10px;text-align:right;color:var(--p)" id="fee-total-foot">NT$0</td></tr></tfoot>
+      </table></div>
+    </div>
+  </div>
+</div>
+<!-- CRM -->
+<div class="page" id="page-crm">
+  <div class="cpage">
+    <div class="csum">
+      <div class="cst cs-total"><div class="n" id="crm-total">0</div><div class="l">有紀錄人數</div></div>
+      <div class="cst cs-電話"><div class="n" id="crm-電話">0</div><div class="l">電話</div></div><div class="cst cs-訪視"><div class="n" id="crm-訪視">0</div><div class="l">訪視</div></div><div class="cst cs-問題"><div class="n" id="crm-問題">0</div><div class="l">問題</div></div><div class="cst cs-回報"><div class="n" id="crm-回報">0</div><div class="l">回報</div></div><div class="cst cs-離境"><div class="n" id="crm-離境">0</div><div class="l">離境</div></div><div class="cst cs-解約驗證"><div class="n" id="crm-解約驗證">0</div><div class="l">解約驗證</div></div><div class="cst cs-想轉換雇主"><div class="n" id="crm-想轉換雇主">0</div><div class="l">想轉換雇主</div></div><div class="cst cs-雇主想換"><div class="n" id="crm-雇主想換">0</div><div class="l">雇主想換</div></div><div class="cst cs-服務費欠費"><div class="n" id="crm-服務費欠費">0</div><div class="l">服務費欠費</div></div><div class="cst cs-想重入國"><div class="n" id="crm-想重入國">0</div><div class="l">想重入國</div></div><div class="cst cs-薪資問題"><div class="n" id="crm-薪資問題">0</div><div class="l">薪資問題</div></div><div class="cst cs-其他"><div class="n" id="crm-其他">0</div><div class="l">其他</div></div>
+      <div style="margin-left:auto"><button class="btn btn-o btn-sm" onclick="exportCRMCSV()">📤 匯出紀錄</button></div>
+    </div>
+    <div class="ctbar">
+      <input type="text" id="cq" placeholder="🔍 搜尋姓名／雇主／內容" oninput="renderCRM()" style="width:200px">
+      <select id="cf" onchange="renderCRM()"><option value="">全部類型</option><option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option></select>
+      <select id="csrt" onchange="renderCRM()"><option value="recent">最新紀錄優先</option><option value="most">紀錄最多優先</option><option value="name">姓名排序</option></select>
+      <span id="ccnt" style="font-size:11px;color:var(--m)"></span>
+    </div>
+    <div class="cbody" id="cbody"><div class="cempty">尚無服務紀錄</div></div>
+  </div>
+</div>
+<!-- MODALS -->
+<div class="ov" id="ov-batch"><div class="modal">
+  <div class="mhdr"><h3>✏️ 批次更新</h3><button class="xbtn" onclick="cov('ov-batch')">×</button></div>
+  <div class="mbody"><p style="font-size:12px;color:var(--m);margin-bottom:11px">已選取 <strong id="b-cnt">0</strong> 筆（留空不更新）：</p>
+    <div class="sl" id="b-list"></div><br>
+    <div class="fld"><label>接管代碼</label><select id="b-tak"><option value="">— 不更新 —</option><option>承接</option><option>初招</option><option>遞補</option><option>重招</option></select></div>
+    <div class="fld"><label>入境日（YYY.MM.DD）</label><input type="text" id="b-ent" placeholder="例：115.06.01"></div>
+    <div class="fld"><label>工作期限（YYY.MM.DD）</label><input type="text" id="b-wl" placeholder="例：118.06.01"></div>
+    <div class="fld"><label>業務員</label><input type="text" id="b-sal" placeholder="例：營業一"></div>
+  </div>
+  <div class="mftr"><button class="btn btn-o" onclick="cov('ov-batch')">取消</button><button class="btn btn-w" onclick="applyBatch()">套用批次更新</button></div>
+</div></div>
+<div class="ov" id="ov-add"><div class="modal">
+  <div class="mhdr"><h3>＋ 新增移工</h3><button class="xbtn" onclick="cov('ov-add')">×</button></div>
+  <div class="mbody" id="add-form"></div>
+  <div class="mftr"><button class="btn btn-o" onclick="cov('ov-add')">取消</button><button class="btn btn-p" onclick="submitAdd()">新增</button></div>
+</div></div>
+<div class="ov" id="ov-import"><div class="modal">
+  <div class="mhdr"><h3>📥 匯入 / 更新資料</h3><button class="xbtn" onclick="cov('ov-import')">×</button></div>
+  <div class="mbody">
+    <p style="font-size:12px;color:var(--m);margin-bottom:11px">上傳 Excel（.xls/.xlsx）或 CSV，以<strong>居留證號</strong>比對：相同→更新保留客服紀錄，消失→移除，新增→加入。</p>
+    <div class="iz" ondragover="event.preventDefault();this.style.borderColor='var(--p)'" ondragleave="this.style.borderColor=''" ondrop="handleDrop(event)" onclick="document.getElementById('fi').click()">
+      <div style="font-size:32px">📄</div><p style="margin-top:7px"><strong>點擊選擇檔案</strong> 或拖拉至此</p>
+      <p style="font-size:11px;color:var(--m);margin-top:5px">支援 .xls / .xlsx / .csv</p>
+    </div>
+    <input type="file" id="fi" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile(this)">
+    <div id="imp-prev" style="margin-top:11px"></div>
+  </div>
+  <div class="mftr"><button class="btn btn-o" onclick="cov('ov-import')">取消</button><button class="btn btn-s" id="btn-ci" onclick="confirmImport()" style="display:none">✅ 確認智慧匯入</button></div>
+</div></div>
+<div class="g-tip" id="g-tip"></div><div class="toast" id="toast"></div>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyCx-VIbaa7Nuy-9cneNazUYUvnPkLAvdzo",authDomain:"workersystem-86ecc.firebaseapp.com",projectId:"workersystem-86ecc",storageBucket:"workersystem-86ecc.firebasestorage.app",messagingSenderId:"1040764002540",appId:"1:1040764002540:web:20ab316d69313ffba185c9"});
+const db=firebase.firestore(),COL='workers';
+function dId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
+function showFbSt(msg,t='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(t==='err'?'err':t==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(t!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
+async function fbSave(w){try{await db.collection(COL).doc(dId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗:'+e.message,'err');}}
+async function fbDel(w){try{await db.collection(COL).doc(dId(w)).delete();}catch(e){console.error(e);}}
+async function fbBatchReplace(list){
+  showFbSt('上傳中…','sync');
+  try{
+    const snap=await db.collection(COL).get();const b=db.batch();snap.docs.forEach(d=>b.delete(d.ref));await b.commit();
+    for(let i=0;i<list.length;i+=400){const b2=db.batch();list.slice(i,i+400).forEach(w=>b2.set(db.collection(COL).doc(dId(w)),w));await b2.commit();}
+    showFbSt('✅ 已同步 '+list.length+' 筆');
+  }catch(e){showFbSt('批次失敗:'+e.message,'err');}
+}
+async function loadFB(){
+  try{
+    const snap=await db.collection(COL).get();
+    workers=snap.empty?[]:snap.docs.map(d=>d.data());
+    document.getElementById('fb-ind').innerHTML='🟢 Firebase 已連線';
+    document.getElementById('fb-ind').style.background='rgba(74,222,128,.25)';
+  }catch(e){document.getElementById('fb-ind').innerHTML='🔴 離線模式';showFbSt('Firebase 連線失敗','err');}
+  finally{
+    document.getElementById('fbl').style.display='none';
+    computeDynamic();updateStats();filt();
+    if(!workers.length)setTimeout(()=>{showToast('📥 尚無資料，請上傳 Excel');openImport();},600);
+  }
+}
+let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
+const PAGE=50,sel=new Set();let editId=null,impBuf=[];
+let GDATA=[],FEE_DATA=[],FEE_W=[],MONTHS=[],TOTAL_DAYS=365;
+function rocToDate(s){if(!s)return null;const m=s.match(/(\d{2,3})[.\/\-](\d{1,2})[.\/\-](\d{1,2})/);if(!m)return null;try{return new Date(+m[1]+1911,+m[2]-1,+m[3]);}catch{return null;}}
+function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
+function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
+function computeDynamic(){
+  const today=new Date();today.setHours(0,0,0,0);
+  GDATA=workers.filter(w=>w.work_limit).map((w,i)=>{
+    const d=rocToDate(w.work_limit);const dl=d?Math.floor((d-today)/86400000):0;
+    return{seq:String(i+1),employer:w.employer||'',name:w.name_zh||w.name_en||'',
+      work_limit_roc:w.work_limit||'',work_limit_ad:d?d.toISOString().slice(0,10):'',
+      days_left:String(dl),status:dl<0?'已過期':dl<=180?'即將到期':'正常'};
+  });
+  const vw=workers.filter(w=>{const ed=rocToDate(w.entry_date),wl=rocToDate(w.work_limit);return ed&&wl&&wl>today;});
+  if(!vw.length){FEE_DATA=[];FEE_W=[];MONTHS=[];TOTAL_DAYS=365;updFeeUI();return;}
+  const maxL=vw.reduce((mx,w)=>{const wl=rocToDate(w.work_limit);return wl>mx?wl:mx;},today);
+  const endD=new Date(maxL.getFullYear(),maxL.getMonth()+2,1);
+  TOTAL_DAYS=Math.max(365,Math.ceil((endD-today)/86400000));
+  MONTHS=[];let md=new Date(today.getFullYear(),today.getMonth(),1);
+  while(md<endD){MONTHS.push({label:md.getFullYear()+'/'+(String(md.getMonth()+1).padStart(2,'0')),offset:Math.floor((md-today)/86400000),year:md.getFullYear(),month:md.getMonth()+1});md=new Date(md.getFullYear(),md.getMonth()+1,1);}
+  FEE_DATA=[];let cur=new Date(today.getFullYear(),today.getMonth(),1);
+  while(cur<endD){
+    const nxt=new Date(cur.getFullYear(),cur.getMonth()+1,1);const me=new Date(nxt-1);
+    const cnt={900:0,850:0,750:0};
+    vw.forEach(w=>{const ed=rocToDate(w.entry_date),wl=rocToDate(w.work_limit);if(!ed||!wl||ed>me||wl<cur)return;cnt[mbw(ed,cur)<12?900:mbw(ed,cur)<24?850:750]++;});
+    FEE_DATA.push({month:cur.getFullYear()+'/'+(String(cur.getMonth()+1).padStart(2,'0')),workers:cnt[900]+cnt[850]+cnt[750],cnt_1800:cnt[900],cnt_1700:cnt[850],cnt_1500:cnt[750],total:cnt[900]*900+cnt[850]*850+cnt[750]*750});
+    cur=nxt;
+  }
+  FEE_W=vw.map(w=>{const ed=rocToDate(w.entry_date),wl=rocToDate(w.work_limit);return{name:w.name_en||w.name_zh||'',employer:w.employer||'',entry:ed?ed.toISOString():'',limit:wl?wl.toISOString():''};}); 
+  fCanvas=null;updFeeUI();
+}
+function updFeeUI(){
+  const gt=FEE_DATA.reduce((s,d)=>s+d.total,0);
+  document.getElementById('fee-grand').textContent='NT$'+gt.toLocaleString();
+  document.getElementById('fee-avg').textContent='NT$'+(FEE_DATA.length?Math.round(gt/FEE_DATA.length):0).toLocaleString();
+  document.getElementById('fee-total-foot').textContent='NT$'+gt.toLocaleString();
+}
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');document.getElementById('page-'+name).classList.add('active');
+  if(name==='gantt')requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(buildGantt,30)));
+  if(name==='fee')setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(initFee)),30);
+  if(name==='crm')setTimeout(renderCRM,30);
+}
+function toggleSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sb-ov').classList.toggle('open');}
+function updateStats(){
+  let ex=0,e60=0,tak=0;workers.forEach(w=>{const dl=daysLeft(w.work_limit);if(dl!==null&&dl<0)ex++;else if(dl!==null&&dl<=60)e60++;if(w.takeover_code==='承接')tak++;});
+  document.getElementById('st-t').textContent=workers.length;document.getElementById('st-e').textContent=ex;
+  document.getElementById('st-60').textContent=e60;document.getElementById('st-tk').textContent=tak;
+  document.getElementById('total-badge').textContent='共 '+workers.length+' 筆';
+}
+function filt(){
+  const q=document.getElementById('q').value.toLowerCase(),nat=document.getElementById('f-nat').value,tak=document.getElementById('f-tak').value,lim=document.getElementById('f-lim').value;
+  filtered=workers.filter(w=>{
+    if(q&&![w.name_en,w.name_zh,w.employer,w.passport,w.permit_no,w.resident_id].some(v=>(v||'').toLowerCase().includes(q)))return false;
+    if(nat&&w.nationality!==nat)return false;if(tak&&w.takeover_code!==tak)return false;
+    if(lim){const dl=daysLeft(w.work_limit);if(lim==='exp'&&(dl===null||dl>=0))return false;if(lim==='s60'&&(dl===null||dl<0||dl>60))return false;if(lim==='ok'&&(dl===null||dl<0||dl<=60))return false;}
+    return true;
+  });
+  filtered.sort((a,b)=>((a[sortCol]||'').localeCompare(b[sortCol]||'','zh-TW'))*sortDir);pg=1;renderTable();
+}
+function clearFilt(){['q','f-nat','f-tak','f-lim'].forEach(id=>document.getElementById(id).value='');filt();}
+function sortBy(c){sortDir=sortCol===c?-sortDir:1;sortCol=c;filt();}
+function renderTable(){
+  const rows=filtered.slice((pg-1)*PAGE,pg*PAGE);
+  document.getElementById('tbody').innerHTML=rows.map(w=>{
+    const dl=daysLeft(w.work_limit);const lc=dl===null?'':dl<0?'exp-t':dl<=60?'soon-t':'';const isSel=sel.has(w.id);
+    const rc=w.records&&w.records.length?'💬'+w.records.length+' ':'';
+    return'<tr class="'+(isSel?'sel':'')+'" onclick="rowCk(event,'+w.id+')">'+
+      '<td onclick="event.stopPropagation()"><input type="checkbox" '+(isSel?'checked':'')+' onchange="toggleRow('+w.id+',this.checked)"></td>'+
+      '<td><strong>'+(w.name_en||'')+'</strong></td><td>'+(w.name_zh||'')+'</td>'+
+      '<td title="'+(w.employer||'')+'">'+(w.employer||'').replace(/ \(接\)/,'').replace(/ \(遞:\)/,'').substring(0,10)+'</td>'+
+      '<td>'+(w.nationality?'<span class="chip chip-'+w.nationality+'">'+w.nationality+'</span>':'')+'</td>'+
+      '<td>'+(w.entry_date||'')+'</td><td class="'+lc+'" title="'+(dl!==null?'剩餘'+dl+'天':'')+'">'+(w.work_limit||'')+'</td>'+
+      '<td>'+(w.takeover_code?'<span class="chip chip-'+w.takeover_code+'">'+w.takeover_code+'</span>':'')+'</td>'+
+      '<td style="font-family:monospace">'+(w.passport||'')+'</td><td>'+(w.passport_exp||'')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+(w.permit_no||'')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+(w.resident_id||'')+'</td>'+
+      '<td onclick="event.stopPropagation()"><button class="btn btn-sm btn-o" onclick="openDP('+w.id+')">'+rc+'編輯</button></td></tr>';
+  }).join('');renderPag();updSel();
+}
+function renderPag(){
+  const total=filtered.length,pages=Math.ceil(total/PAGE)||1;const s=Math.max(1,pg-2),e=Math.min(pages,pg+2);
+  let h='<button class="pg" onclick="goP('+(pg-1)+')" '+(pg<=1?'disabled':'')+'>‹</button>';
+  if(s>1)h+='<button class="pg" onclick="goP(1)">1</button>'+(s>2?'<span style="padding:0 3px">…</span>':'');
+  for(let i=s;i<=e;i++)h+='<button class="pg '+(i===pg?'a':'')+'" onclick="goP('+i+')">'+i+'</button>';
+  if(e<pages)h+=(e<pages-1?'<span style="padding:0 3px">…</span>':'')+'<button class="pg" onclick="goP('+pages+')">'+pages+'</button>';
+  h+='<button class="pg" onclick="goP('+(pg+1)+')" '+(pg>=pages?'disabled':'')+'>›</button>';
+  h+='<span style="margin-left:auto;font-size:11px;color:var(--m)">共'+total+'筆・第'+pg+'/'+pages+'頁</span>';
+  document.getElementById('pag').innerHTML=h;
+}
+function goP(p){pg=p;renderTable();}
+function toggleRow(id,c){c?sel.add(id):sel.delete(id);updSel();renderTable();}
+function toggleAll(c){if(c)filtered.forEach(w=>sel.add(w.id));else sel.clear();['ck-all','ck-all2'].forEach(id=>document.getElementById(id).checked=c);renderTable();}
+function updSel(){const n=sel.size;document.getElementById('sel-info').textContent=n?'已選取'+n+'筆':'';document.getElementById('btn-del').style.display=n?'':'none';}
+function rowCk(e,id){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;openDP(id);}
+const FIELDS=[['entry_date','入境日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
+function openDP(id){
+  editId=id;const w=workers.find(x=>x.id===id);if(!w)return;if(!w.records)w.records=[];
+  document.getElementById('dp-title').textContent=w.name_en+(w.name_zh?' / '+w.name_zh:'');
+  document.getElementById('dp-body').innerHTML=FIELDS.map(([k,l])=>{
+    if(k==='takeover_code')return'<div class="fld"><label>'+l+'</label><select id="d_'+k+'"><option value="">—</option>'+['承接','初招','遞補','重招'].map(v=>'<option '+(w[k]===v?'selected':'')+'>'+v+'</option>').join('')+'</select></div>';
+    if(k==='nationality')return'<div class="fld"><label>'+l+'</label><select id="d_'+k+'">'+['印','菲','越'].map(v=>'<option '+(w[k]===v?'selected':'')+'>'+v+'</option>').join('')+'</select></div>';
+    if(k==='gender')return'<div class="fld"><label>'+l+'</label><select id="d_'+k+'"><option '+(w[k]==='女'?'selected':'')+'>女</option><option '+(w[k]==='男'?'selected':'')+'>男</option></select></div>';
+    return'<div class="fld"><label>'+l+'</label><input type="text" id="d_'+k+'" value="'+(w[k]||'').replace(/"/g,'&quot;')+'"></div>';
+  }).join('')+buildRec(w);
+  document.getElementById('dp').classList.add('open');
+}
+function closeDP(){document.getElementById('dp').classList.remove('open');editId=null;}
+function saveDP(){const w=workers.find(x=>x.id===editId);if(!w)return;FIELDS.forEach(([k])=>{const el=document.getElementById('d_'+k);if(el)w[k]=el.value;});computeDynamic();filt();updateStats();fbSave(w);showToast('✅ 已儲存');closeDP();}
+function buildRec(w){
+  const recs=w.records||[];const today=new Date().toLocaleDateString('zh-TW');
+  const list=!recs.length?'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無紀錄</div>'
+    :recs.map((r,i)=>'<div class="rec-item type-'+r.type+'"><div class="rec-meta"><span class="rec-date">'+r.date+'</span><span class="rec-type rec-type-'+r.type+'">'+r.type+'</span></div><div class="rec-content">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div><button class="rec-del" onclick="delRec('+w.id+','+i+')" title="刪除">✕</button></div>').join('');
+  return'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1"><option value="電話">📞 電話</option>
+<option value="訪視">🏠 訪視</option>
+<option value="問題">⚠️ 問題</option>
+<option value="回報">📋 回報</option>
+<option value="離境">✈️ 離境</option>
+<option value="解約驗證">📄 解約驗證</option>
+<option value="想轉換雇主">🔄 想轉換雇主</option>
+<option value="雇主想換">👤 雇主想換</option>
+<option value="服務費欠費">💸 服務費欠費</option>
+<option value="想重入國">🛬 想重入國</option>
+<option value="薪資問題">💰 薪資問題</option>
+<option value="其他">📝 其他</option></select><span style="font-size:11px;color:var(--m)">'+today+'</span></div><textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
+}
+function addRec(wid){
+  const w=workers.find(x=>x.id===wid);if(!w)return;if(!w.records)w.records=[];
+  const type=document.getElementById('rec-type').value,txt=document.getElementById('rec-txt').value.trim();
+  if(!txt){showToast('請輸入紀錄內容');return;}
+  const now=new Date();w.records.unshift({date:now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),type,content:txt});
+  const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');
+  if(old)old.outerHTML=buildRec(w);else body.innerHTML+=buildRec(w);
+  fbSave(w);showToast('✅ 客服紀錄已新增');renderTable();
+  if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
+}
+function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');if(old)old.outerHTML=buildRec(w);showToast('🗑 紀錄已刪除');}
+function openBatch(){if(!sel.size){showToast('請先勾選移工');return;}
+  document.getElementById('b-cnt').textContent=sel.size;
+  document.getElementById('b-list').innerHTML=workers.filter(w=>sel.has(w.id)).map(w=>'<div>'+w.name_en+' / '+w.employer+'</div>').join('');
+  ['b-tak','b-ent','b-wl','b-sal'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ov-batch').classList.add('open');}
+function applyBatch(){
+  const tak=document.getElementById('b-tak').value,ent=document.getElementById('b-ent').value.trim(),wl=document.getElementById('b-wl').value.trim(),sal=document.getElementById('b-sal').value.trim();let n=0;
+  workers.forEach(w=>{if(!sel.has(w.id))return;if(tak)w.takeover_code=tak;if(ent)w.entry_date=ent;if(wl)w.work_limit=wl;if(sal)w.salesman=sal;fbSave(w);n++;});
+  cov('ov-batch');sel.clear();computeDynamic();filt();updateStats();showToast('✅ 批次更新'+n+'筆');}
+function openAdd(){
+  document.getElementById('add-form').innerHTML=FIELDS.map(([k,l])=>{
+    if(k==='takeover_code')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option value="">—</option>'+['承接','初招','遞補','重招'].map(v=>'<option>'+v+'</option>').join('')+'</select></div>';
+    if(k==='nationality')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option>印</option><option>菲</option><option>越</option></select></div>';
+    if(k==='gender')return'<div class="fld"><label>'+l+'</label><select id="a_'+k+'"><option>女</option><option>男</option></select></div>';
+    return'<div class="fld"><label>'+l+'</label><input type="text" id="a_'+k+'" placeholder="'+l+'"></div>';
+  }).join('');document.getElementById('ov-add').classList.add('open');}
+function submitAdd(){
+  const nw={id:Date.now(),records:[]};FIELDS.forEach(([k])=>{const el=document.getElementById('a_'+k);if(el)nw[k]=el.value;});
+  if(!nw.name_en){showToast('英文姓名為必填');return;}
+  workers.push(nw);cov('ov-add');computeDynamic();filt();updateStats();fbSave(nw);showToast('✅ 已新增：'+nw.name_en);}
+function delSel(){if(!confirm('確定刪除'+sel.size+'筆？'))return;const td=workers.filter(w=>sel.has(w.id));workers=workers.filter(w=>!sel.has(w.id));sel.clear();computeDynamic();filt();updateStats();td.forEach(w=>fbDel(w));showToast('🗑 已刪除');}
+function openImport(){document.getElementById('ov-import').classList.add('open');}
+function handleDrop(e){e.preventDefault();if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);}
+function handleFile(inp){if(inp.files[0])processFile(inp.files[0]);}
+function processFile(f){if(f.name.toLowerCase().match(/\.xlsx?$/))processExcel(f);else processCSV(f);}
+function processExcel(file){
+  const r=new FileReader();r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames.includes('Sheet1')?'Sheet1':wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let ds=0;for(let i=0;i<rows.length;i++){if(rows[i].some(v=>String(v).includes('入境日')||String(v).includes('英文姓名'))){ds=i+1;break;}}
+      impBuf=[];
+      for(let i=ds;i<rows.length;i++){
+        const r2=rows[i].map(v=>{if(typeof v==='number'&&v>10000){const d=XLSX.SSF.parse_date_code(v);if(d)return(d.y-1911)+'.'+String(d.m).padStart(2,'0')+'.'+String(d.d).padStart(2,'0');}return String(v).trim();});
+        if(!r2[4]||r2[4].length<2||String(r2[0]).includes('合計'))continue;
+        impBuf.push({entry_date:r2[0]||'',exit_date:r2[1]||'',employer:r2[2]||'',worker_id:r2[3]||'',name_en:r2[4]||'',name_zh:r2[5]||'',gender:r2[6]||'',nationality:r2[7]||'',passport:r2[8]||'',passport_exp:r2[9]||'',work_limit:r2[10]||'',status:r2[11]||'',permit_no:r2[12]||'',resident_id:r2[13]||'',source:r2[14]||'',takeover_code:r2[15]||'',salesman:r2[16]||''});
+      }
+      showImpPrev(file.name);
+    }catch(err){document.getElementById('imp-prev').innerHTML='<p style="color:var(--d)">❌ 讀取失敗：'+err.message+'</p>';}
+  };r.readAsArrayBuffer(file);}
+function processCSV(file){
+  const r=new FileReader();r.onload=e=>{
+    const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());impBuf=[];
+    lines.slice(1).forEach(line=>{const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());if(cols.length>=9&&cols[4])impBuf.push({entry_date:cols[0]||'',exit_date:cols[1]||'',employer:cols[2]||'',worker_id:cols[3]||'',name_en:cols[4]||'',name_zh:cols[5]||'',gender:cols[6]||'',nationality:cols[7]||'',passport:cols[8]||'',passport_exp:cols[9]||'',work_limit:cols[10]||'',status:cols[11]||'',permit_no:cols[12]||'',resident_id:cols[13]||'',source:cols[14]||'',takeover_code:cols[15]||'',salesman:cols[16]||''});});
+    showImpPrev(file.name);};r.readAsText(file,'UTF-8');}
+function showImpPrev(name){
+  document.getElementById('imp-prev').innerHTML='<p style="font-size:12px;margin-bottom:7px">📄 <strong>'+name+'</strong>｜解析到 <strong>'+impBuf.length+' 筆</strong></p><div class="sl">'+impBuf.slice(0,8).map(w=>'<div>'+(w.name_en||w.name_zh)+' / '+w.employer+'</div>').join('')+(impBuf.length>8?'<div>…及其他'+(impBuf.length-8)+'筆</div>':'')+'</div>';
+  document.getElementById('btn-ci').style.display='';}
+function confirmImport(){
+  const gk=w=>(w.resident_id||w.passport||'').trim();const nk=new Set(impBuf.map(gk).filter(Boolean));
+  let added=0,updated=0,removed=0;const merged=[];
+  impBuf.forEach((imp,i)=>{const k=gk(imp);const ex=workers.find(w=>k&&gk(w)===k);if(ex){merged.push({...imp,id:ex.id,records:ex.records||[]});updated++;}else{merged.push({...imp,id:Date.now()+i+Math.random(),records:[]});added++;}});
+  removed=workers.filter(w=>{const k=gk(w);return k&&!nk.has(k);}).length;
+  workers=merged;cov('ov-import');computeDynamic();filt();updateStats();
+  showToast('✅ 新增'+added+'、更新'+updated+'、移除'+removed+'筆');fbBatchReplace(workers);}
+function exportCSV(){
+  const H=['入境日','離境日','雇主','工號','英文姓名','中文名','性別','國籍','護照號碼','護照到期','工作期限','離管狀態','聘可文號','居留證號','任用來源','接管代碼','業務員'];
+  const K=['entry_date','exit_date','employer','worker_id','name_en','name_zh','gender','nationality','passport','passport_exp','work_limit','status','permit_no','resident_id','source','takeover_code','salesman'];
+  const src=sel.size?workers.filter(w=>sel.has(w.id)):filtered;
+  dlCSV('\uFEFF'+[H.join(','),...src.map(w=>K.map(k=>'"'+(w[k]||'').replace(/"/g,'""')+'"').join(','))].join('\n'),'workers_'+isoDate()+'.csv');showToast('📤 匯出'+src.length+'筆');}
+function dlCSV(c,n){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv;charset=utf-8'}));a.download=n;a.click();}
+function isoDate(){return new Date().toISOString().slice(0,10);}
+function cov(id){document.getElementById(id).classList.remove('open');}
+const HDR_H=44,ROW_H=24;let gRows=[],gScale=1;
+const GC={expired:'#c0392b',urgent:'#e85c26',soon:'#c47d00',normal:'#1b8a4e'};
+const GL={expired:'已過期',urgent:'緊急',soon:'即將到期',normal:'正常'};
+function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
+function buildGantt(){
+  if(!GDATA.length){document.getElementById('glbody').innerHTML='';document.getElementById('gcnt').textContent='尚無資料';return;}
+  const q=(document.getElementById('gq').value||'').toLowerCase(),fs=document.getElementById('gf').value,sort=document.getElementById('gs').value;
+  let data=GDATA.map(r=>{const d=parseInt(r.days_left)||0;return{...r,di:d,cls:gcls(d)};});
+  if(q)data=data.filter(r=>r.name.toLowerCase().includes(q)||r.employer.toLowerCase().includes(q));
+  if(fs)data=data.filter(r=>r.cls===fs);
+  if(sort==='asc')data.sort((a,b)=>a.di-b.di);else if(sort==='desc')data.sort((a,b)=>b.di-a.di);
+  else if(sort==='emp')data.sort((a,b)=>a.employer.localeCompare(b.employer,'zh-TW'));
+  else data.sort((a,b)=>a.name.localeCompare(b.name,'zh-TW'));
+  gRows=data;
+  const cnt={expired:0,urgent:0,soon:0,normal:0};GDATA.forEach(r=>cnt[gcls(parseInt(r.days_left)||0)]++);
+  ['e','u','s','n'].forEach((k,i)=>document.getElementById('ge-'+k).textContent=[cnt.expired,cnt.urgent,cnt.soon,cnt.normal][i]);
+  document.getElementById('gcnt').textContent='顯示'+data.length+'/'+GDATA.length+'筆';
+  drawGantt();buildGLabels();}
+function drawGantt(){
+  const gr=document.getElementById('gright'),cv=document.getElementById('gcv'),ctx=cv.getContext('2d');
+  const W2=gr.getBoundingClientRect().width||gr.offsetWidth||800;
+  gScale=Math.max(0.6,W2/TOTAL_DAYS);
+  const W=Math.ceil(TOTAL_DAYS*gScale),H=HDR_H+gRows.length*ROW_H+10,dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';ctx.scale(dpr,dpr);
+  ctx.fillStyle='#f8f9fc';ctx.fillRect(0,0,W,H);
+  MONTHS.forEach((mo,i)=>{
+    const x=mo.offset*gScale;if(x<0||x>W)return;const nxt=i+1<MONTHS.length?MONTHS[i+1].offset*gScale:W,cw=nxt-x,isY=mo.month===1;
+    ctx.strokeStyle=isY?'#c0c8d8':'#e0e4ef';ctx.lineWidth=isY?1.5:0.8;ctx.setLineDash(isY?[]:[4,3]);ctx.beginPath();ctx.moveTo(x,HDR_H);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);
+    if(isY){ctx.fillStyle='#e0e6f5';ctx.fillRect(x,0,cw,22);ctx.fillStyle='#1a5fa8';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(mo.year+'年',x+cw/2,11);}
+    ctx.fillStyle='#f0f2f8';ctx.fillRect(x,22,cw,22);ctx.fillStyle=isY?'#1a5fa8':'#6b7280';ctx.font=(cw>28?'11':'10')+'px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';if(cw>20)ctx.fillText(mo.month+'月',x+cw/2,33);});
+  ctx.strokeStyle='#c0c8d8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
+  ctx.strokeStyle='#e85c26';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(1,HDR_H);ctx.lineTo(1,H);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#e85c26';ctx.font='bold 10px Segoe UI';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('今天',4,HDR_H+2);
+  gRows.forEach((r,i)=>{
+    const y=HDR_H+i*ROW_H,color=GC[r.cls];ctx.fillStyle=i%2===0?'#fff':'#f7f8fc';ctx.fillRect(0,y,W,ROW_H);
+    const bw=Math.max(0,r.di)*gScale,bx=2,by=y+4,bh=ROW_H-8;
+    if(r.di<0){ctx.fillStyle='#fde8e8';ctx.fillRect(bx,by,6,bh);}
+    else if(bw>1){const g=ctx.createLinearGradient(bx,0,bx+bw,0);g.addColorStop(0,color);g.addColorStop(1,color+'cc');ctx.fillStyle=g;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,3);else ctx.rect(bx,by,bw,bh);ctx.fill();
+      if(bw>40){ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(r.di+'天',bx+6,y+ROW_H/2);}
+      ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx+bw,by);ctx.lineTo(bx+bw,by+bh);ctx.stroke();}
+    ctx.strokeStyle='#e8eaf2';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,y+ROW_H);ctx.lineTo(W,y+ROW_H);ctx.stroke();});
+  cv._bars=gRows.map((r,i)=>{return{x:2,w:Math.max(0,r.di)*gScale,r,y:HDR_H+i*ROW_H};});}
+function buildGLabels(){
+  const lb=document.getElementById('glbody');
+  lb.innerHTML=gRows.map((r,i)=>{const c=GC[r.cls],emp=(r.employer||'').replace(/ \(接\)/,'').replace(/ \(遞:\)/,'').substring(0,12);
+    return'<div style="height:'+ROW_H+'px;display:flex;align-items:center;padding:0 8px;border-bottom:1px solid #e8eaf2;background:'+(i%2===0?'#fff':'#f7f8fc')+';font-size:11px;gap:5px;overflow:hidden;cursor:default" title="'+r.employer+' / '+r.name+'（'+r.days_left+'天）">'+
+      '<span style="width:8px;height:8px;border-radius:50%;background:'+c+';flex-shrink:0"></span>'+
+      '<span style="color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">'+emp+'</span>'+
+      '<span style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+r.name+'</span></div>';}).join('');lb.scrollTop=0;}
+function syncGL(el){document.getElementById('glbody').scrollTop=el.scrollTop;}
+const gcvEl=document.getElementById('gcv');
+gcvEl.addEventListener('mousemove',e=>{
+  const rect=gcvEl.getBoundingClientRect(),gr=document.getElementById('gright');
+  const x=e.clientX-rect.left,y=e.clientY-rect.top+gr.scrollTop;const ri=Math.floor((y-HDR_H)/ROW_H);const tip=document.getElementById('g-tip');
+  if(ri>=0&&ri<gRows.length){const r=gRows[ri];const c=GC[r.cls];
+    tip.innerHTML='<strong style="color:'+c+'">'+r.name+'</strong><br>🏠 '+r.employer+'<br>📅 '+r.work_limit_roc+'（'+r.work_limit_ad+'）<br>⏳ <strong style="color:'+c+'">'+r.days_left+'</strong>天・<span style="background:'+c+';color:#fff;padding:1px 7px;border-radius:10px;font-size:11px">'+GL[r.cls]+'</span>';
+    tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-10)+'px';}else tip.style.display='none';});
+gcvEl.addEventListener('mouseleave',()=>document.getElementById('g-tip').style.display='none');
+window.addEventListener('resize',()=>{if(document.getElementById('page-gantt').classList.contains('active'))drawGantt();});
+function exportGanttCSV(){dlCSV('\uFEFF序,雇主,移工姓名,工作期限(民國),工作期限(西元),剩餘天數,狀態\n'+GDATA.map((r,i)=>[i+1,r.employer,r.name,r.work_limit_roc,r.work_limit_ad,r.days_left,r.status].map(v=>'"'+v+'"').join(',')).join('\n'),'gantt_'+isoDate()+'.csv');showToast('📤 甘特圖CSV已匯出');}
+let fActiveM=null,fCanvas=null,fCtx=null;
+function initFee(){
+  if(fCanvas&&fCanvas._ok){renderFeeTable();renderFeeChart();return;}
+  fCanvas=document.getElementById('fcv');fCtx=fCanvas.getContext('2d');fCanvas._ok=true;
+  const first=FEE_DATA[0];if(first){document.getElementById('f-c1').textContent=first.cnt_1800;document.getElementById('f-c2').textContent=first.cnt_1700;document.getElementById('f-c3').textContent=first.cnt_1500;}
+  renderFeeChart();renderFeeTable();
+  fCanvas.addEventListener('click',feeCk);fCanvas.addEventListener('mousemove',feeMv);fCanvas.addEventListener('mouseleave',()=>fCanvas.style.cursor='default');}
+function getFeeRange(){const v=document.getElementById('frange').value;return v==='all'?FEE_DATA:FEE_DATA.slice(0,parseInt(v));}
+function renderFeeChart(){
+  if(!fCanvas||!fCanvas._ok)return;const data=getFeeRange();
+  if(!data.length){fCtx.clearRect(0,0,fCanvas.width,fCanvas.height);return;}
+  const wrap=document.getElementById('fcw');const W=wrap.clientWidth-32||600,H=260,dpr=window.devicePixelRatio||1;
+  fCanvas.width=W*dpr;fCanvas.height=H*dpr;fCanvas.style.width=W+'px';fCanvas.style.height=H+'px';fCtx.scale(dpr,dpr);
+  const ctx=fCtx,PL=52,PR=12,PT=16,PB=44,cW=W-PL-PR,cH=H-PT-PB;
+  const maxV=Math.max(...data.map(d=>d.total))*1.08||1;const bW=Math.max(4,Math.floor(cW/data.length)-2),gap=(cW-bW*data.length)/(data.length+1);
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  ctx.setLineDash([3,3]);ctx.strokeStyle='#e0e4ef';ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){const y=PT+cH-(i/5)*cH;ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(PL+cW,y);ctx.stroke();ctx.fillStyle='#9ca3af';ctx.font='10px Segoe UI';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(Math.round((i/5)*maxV/1000)+'K',PL-4,y);}
+  ctx.setLineDash([]);
+  data.forEach((d,i)=>{
+    const x=PL+gap+i*(bW+gap),ia=fActiveM===d.month;const h9=(d.cnt_1800*900/maxV)*cH,h85=(d.cnt_1700*850/maxV)*cH,h75=(d.cnt_1500*750/maxV)*cH;let y=PT+cH;
+    ctx.fillStyle=ia?'#0f7a3a':'#1b8a4e';ctx.fillRect(x,y-h75,bW,h75);y-=h75;
+    ctx.fillStyle=ia?'#a86a00':'#c47d00';ctx.fillRect(x,y-h85,bW,h85);y-=h85;
+    ctx.fillStyle=ia?'#c04010':'#e85c26';ctx.fillRect(x,y-h9,bW,h9);
+    if(ia){ctx.strokeStyle='#1a5fa8';ctx.lineWidth=2;ctx.strokeRect(x-1,PT+cH-(h9+h85+h75)-1,bW+2,h9+h85+h75+2);}
+    const skip=data.length>30?6:data.length>15?3:1;
+    if(i%skip===0){ctx.fillStyle='#6b7280';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.save();ctx.translate(x+bW/2,PT+cH+6);ctx.rotate(-0.5);ctx.textBaseline='top';ctx.fillText(d.month,0,0);ctx.restore();}});
+  ctx.strokeStyle='#c0c8d8';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PL,PT);ctx.lineTo(PL,PT+cH+1);ctx.lineTo(PL+cW,PT+cH+1);ctx.stroke();
+  [['#e85c26','NT$900（<1年）'],['#c47d00','NT$850（1~2年）'],['#1b8a4e','NT$750（>2年）']].forEach(([c,l],i)=>{ctx.fillStyle=c;ctx.fillRect(PL+10+i*130,8,10,10);ctx.fillStyle='#374151';ctx.font='10px Segoe UI';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(l,PL+24+i*130,13);});
+  fCanvas._bars=data.map((d,i)=>{const x=PL+gap+i*(bW+gap);return{x,w:bW,d};});}
+function feeCk(e){const rect=fCanvas.getBoundingClientRect(),px=e.clientX-rect.left;const bar=(fCanvas._bars||[]).find(b=>px>=b.x&&px<=b.x+b.w);if(!bar)return;
+  fActiveM=bar.d.month;renderFeeChart();showDrill(bar.d);
+  document.querySelectorAll('.ftbl tbody tr').forEach(tr=>tr.classList.toggle('fa',tr.dataset.m===bar.d.month));
+  const ar=document.querySelector('.ftbl tbody tr.fa');if(ar)ar.scrollIntoView({block:'nearest'});
+  document.getElementById('f-c1').textContent=bar.d.cnt_1800;document.getElementById('f-c2').textContent=bar.d.cnt_1700;document.getElementById('f-c3').textContent=bar.d.cnt_1500;}
+function feeMv(e){const rect=fCanvas.getBoundingClientRect(),px=e.clientX-rect.left;fCanvas.style.cursor=(fCanvas._bars||[]).find(b=>px>=b.x&&px<=b.x+b.w)?'pointer':'default';}
+function showDrill(md){
+  const [yr,mo]=md.month.split('/').map(Number);const mD=new Date(yr,mo-1,1);
+  const rows=[];FEE_W.forEach(w=>{const entry=new Date(w.entry),limit=new Date(w.limit),me=new Date(yr,mo,0);if(entry>me||limit<mD)return;const mi=mbw(entry,mD);const fee=mi<12?900:mi<24?850:750;rows.push({name:w.name,emp:(w.employer||'').replace(/ \(接\)/,'').replace(/ \(遞:\)/,'').substring(0,12),mi,fee});});
+  rows.sort((a,b)=>a.fee-b.fee||a.emp.localeCompare(b.emp));
+  document.getElementById('drill-hdr').textContent=md.month+'　共'+md.workers+'人　合計 NT$'+md.total.toLocaleString();
+  const CC={900:'#e85c26',850:'#c47d00',750:'#1b8a4e'};
+  document.getElementById('drill-body').innerHTML=rows.map(r=>'<tr><td>'+r.name+'</td><td style="color:var(--m)">'+r.emp+'</td><td style="text-align:right">'+r.mi+'個月</td><td style="color:'+CC[r.fee]+';font-weight:700">NT$'+r.fee.toLocaleString()+'</td></tr>').join('');
+  document.getElementById('drill').style.display='';}
+function renderFeeTable(){
+  document.getElementById('ftbody').innerHTML=FEE_DATA.map((d,i)=>'<tr data-m="'+d.month+'" onclick="feeTblCk(''+d.month+'')" class="'+(i===0?'fa':'')+'"><td>'+d.month+'</td><td>'+d.workers+'</td><td style="color:#e85c26">'+d.cnt_1800+'</td><td style="color:#c47d00">'+d.cnt_1700+'</td><td style="color:#1b8a4e">'+d.cnt_1500+'</td><td style="font-weight:700;color:var(--p)">NT$'+d.total.toLocaleString()+'</td></tr>').join('');
+  if(FEE_DATA.length){fActiveM=FEE_DATA[0].month;showDrill(FEE_DATA[0]);}}
+function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftbl tbody tr').forEach(tr=>tr.classList.toggle('fa',tr.dataset.m===m));const d=FEE_DATA.find(x=>x.month===m);if(d){showDrill(d);document.getElementById('f-c1').textContent=d.cnt_1800;document.getElementById('f-c2').textContent=d.cnt_1700;document.getElementById('f-c3').textContent=d.cnt_1500;}}
+function exportFeeCSV(){dlCSV('\uFEFF月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
+const TC={"電話": "#1a5fa8", "訪視": "#1b8a4e", "問題": "#c0392b", "回報": "#c47d00", "離境": "#5b21b6", "解約驗證": "#9d174d", "想轉換雇主": "#0369a1", "雇主想換": "#166534", "服務費欠費": "#991b1b", "想重入國": "#065f46", "薪資問題": "#854d0e", "其他": "#6b7280"};
+const TB={"電話": "#e8f0fb", "訪視": "#e8f5ee", "問題": "#fde8e8", "回報": "#fffbea", "離境": "#ede9fe", "解約驗證": "#fce7f3", "想轉換雇主": "#e0f2fe", "雇主想換": "#f0fdf4", "服務費欠費": "#fef2f2", "想重入國": "#ecfdf5", "薪資問題": "#fef9c3", "其他": "#f3f4f6"};
+function renderCRM(){
+  const q=(document.getElementById('cq').value||'').toLowerCase(),ft=document.getElementById('cf').value,sort=document.getElementById('csrt').value;
+  let wr=workers.filter(w=>w.records&&w.records.length);
+  if(ft)wr=wr.filter(w=>w.records.some(r=>r.type===ft));
+  if(q)wr=wr.filter(w=>(w.name_en||'').toLowerCase().includes(q)||(w.name_zh||'').includes(q)||(w.employer||'').includes(q)||w.records.some(r=>r.content.toLowerCase().includes(q)));
+  if(sort==='recent')wr.sort((a,b)=>(b.records[0]?.date||'').localeCompare(a.records[0]?.date||''));
+  else if(sort==='most')wr.sort((a,b)=>b.records.length-a.records.length);
+  else wr.sort((a,b)=>(a.name_en||'').localeCompare(b.name_en||''));
+  const cnt={"電話":0,"訪視":0,"問題":0,"回報":0,"離境":0,"解約驗證":0,"想轉換雇主":0,"雇主想換":0,"服務費欠費":0,"想重入國":0,"薪資問題":0,"其他":0};
+  workers.forEach(w=>(w.records||[]).forEach(r=>{if(cnt[r.type]!==undefined)cnt[r.type]++;}));
+  Object.keys(cnt).forEach(k=>{const el=document.getElementById('crm-'+k);if(el)el.textContent=cnt[k];});
+  document.getElementById('crm-total').textContent=workers.filter(w=>w.records&&w.records.length).length;
+  document.getElementById('ccnt').textContent='顯示'+wr.length+'人';
+  const body=document.getElementById('cbody');
+  if(!wr.length){body.innerHTML='<div class="cempty">'+(q||ft?'沒有符合條件的紀錄':'尚無服務紀錄<br><span style="font-size:12px">在「在台名單」點選移工的編輯按鈕，即可新增客服紀錄</span>')+'</div>';return;}
+  body.innerHTML=wr.map(w=>{
+    const recs=ft?w.records.filter(r=>r.type===ft):w.records;const last=recs[0]?.date||'';
+    const emp=(w.employer||'').replace(/ \(接\)/,'').replace(/ \(遞:\)/,'');
+    const dl=daysLeft(w.work_limit);const dls=dl===null?'':dl<0?'⚠️已到期':dl<=60?'⚠️剩'+dl+'天':'剩'+dl+'天';
+    const recsHtml=recs.map(r=>'<div class="crr type-'+r.type+'"><div class="cri"><span class="d">'+r.date+'</span><span class="crt" style="background:'+(TB[r.type]||'#f3f4f6')+';color:'+(TC[r.type]||'#6b7280')+'">'+r.type+'</span></div><div class="crc">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div></div>').join('');
+    return'<div class="ccard"><div class="cchdr" onclick="togCC('+w.id+')"><span class="tico" id="ci-'+w.id+'">▶</span>'+
+      '<div class="cwinfo"><div class="cwname">'+(w.name_en||'')+(w.name_zh?' / '+w.name_zh:'')+'</div><div class="cwmeta">'+emp+(dls?' · '+dls:'')+' · 工作期限 '+(w.work_limit||'-')+'</div></div>'+
+      '<div class="cbadge"><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+last.substring(0,10)+'</span><span class="cgo" onclick="event.stopPropagation();gotoW('+w.id+')">→ 編輯</span></div>'+
+      '</div><div class="ccbody" id="cc-'+w.id+'">'+recsHtml+'</div></div>';
+  }).join('');}
+function togCC(wid){const b=document.getElementById('cc-'+wid),ic=document.getElementById('ci-'+wid);ic.textContent=b.classList.toggle('open')?'▼':'▶';}
+function gotoW(wid){const lt=document.querySelector('.tab');switchTab('list',lt);setTimeout(()=>openDP(wid),80);}
+function exportCRMCSV(){const rows=['移工英文姓名,中文名,雇主,紀錄日期,類型,內容'];workers.forEach(w=>(w.records||[]).forEach(r=>rows.push([w.name_en,w.name_zh,w.employer,r.date,r.type,'"'+r.content.replace(/"/g,'""')+'"'].join(','))));dlCSV('\uFEFF'+rows.join('\n'),'crm_'+isoDate()+'.csv');showToast('📤 服務紀錄CSV已匯出');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+loadFB();
+</script></body></html>
