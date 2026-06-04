@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -454,7 +455,7 @@ function openDP(id){
 }
 function closeDP(){document.getElementById('dp').classList.remove('open');editId=null;}
 function saveDP(){const w=workers.find(x=>x.id===editId);if(!w)return;FIELDS.forEach(([k])=>{const el=document.getElementById('d_'+k);if(el)w[k]=el.value;});computeDynamic();filt();updateStats();fbSave(w);showToast('✅ 已儲存');closeDP();}
-
+ 
 function buildRec(w){
   const recs=w.records||[];const today=new Date().toLocaleDateString('zh-TW');
   const list=!recs.length?'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無紀錄</div>'
@@ -483,7 +484,7 @@ function addRec(wid){
   if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
 }
 function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');if(old)old.outerHTML=buildRec(w);showToast('🗑 紀錄已刪除');}
-
+ 
 function openBatch(){if(!sel.size){showToast('請先勾選移工');return;}
   document.getElementById('b-cnt').textContent=sel.size;
   document.getElementById('b-list').innerHTML=workers.filter(w=>sel.has(w.id)).map(w=>'<div>'+(w.name_en||w.name_zh)+' / '+w.employer+'</div>').join('');
@@ -663,7 +664,7 @@ function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftb
 function exportFeeCSV(){dlCSV('﻿月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 loadFB();
-
+ 
 function renderCRM(){
   const q=(document.getElementById('cq').value||'').toLowerCase(),ft=document.getElementById('cf').value,sort=document.getElementById('csrt').value;
   let wr=workers.filter(w=>w.records&&w.records.length);
@@ -694,5 +695,5 @@ function renderCRM(){
 function togCC(wid){const b=document.getElementById('cc-'+wid),ic=document.getElementById('ci-'+wid);ic.textContent=b.classList.toggle('open')?'▼':'▶';}
 function gotoW(wid){const lt=document.querySelector('.tab');switchTab('list',lt);setTimeout(()=>openDP(wid),80);}
 function exportCRMCSV(){const rows=['移工英文姓名,中文名,雇主,紀錄日期,類型,內容'];workers.forEach(w=>(w.records||[]).forEach(r=>rows.push([w.name_en,w.name_zh,w.employer,r.date,r.type,'"'+r.content.replace(/"/g,'""')+'"'].join(','))));dlCSV('\uFEFFTW'+rows.join('\n'),'crm_'+isoDate()+'.csv');showToast('📤 服務紀錄CSV已匯出');}
-
+ 
 </script></body></html>
