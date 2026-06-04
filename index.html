@@ -1,33 +1,6 @@
-### 第一步：專家優化
-
-**[P｜Persona 角色任務]**
-擔任資深前端與系統架構顧問，確保提供立即可用、完全無錯且具備高效能邏輯的最終版應用程式原始碼。
-
-**[C｜Context 背景資訊]**
-為了徹底避免手動分段貼上時可能產生的遺漏或覆蓋錯誤，將先前所有的優化項目（包含「修復 HTML 標籤斷行字串」、「升級 Firebase 離線防護機制」以及「Excel/CSV 匯入自動去重功能」）直接合併為一份單一檔案。
-
-**[A｜Aim 具體指令]**
-提供一份包含最新所有修復與升級機制的完整 HTML 程式碼，確保使用者只需「全選、複製、貼上並存檔」，即可一次到位。
-
-**[S｜Structure 結構格式]**
-
-* **完整原始碼**：直接輸出已整合所有防護與修正的單一 HTML 程式碼區塊。
-
-**[E｜Effective 約束條件]**
-指令具體、操作明確，一律使用正向表述。強制使用台灣精準繁體中文字（Traditional Chinese）。
-
----
-
-### 第二步：直接答覆
-
-以下是為您整合了「字串錯誤修復」**、**「Firebase 離線防護機制」**以及**「匯入自動去重邏輯」的最終完整版本。
-
-請將原本檔案的內容全部清空，直接複製以下這整段程式碼貼上並存檔，接著在瀏覽器按下強制重新整理（Windows 請按 `Ctrl` + `F5`；Mac 請按 `Cmd` + `Shift` + `R`）即可：
-
-```html
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>聯捷人力 — 移工客戶服務系統</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -38,7 +11,7 @@
 .hdr{background:var(--p);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0}
 .hdr-title{font-size:15px;font-weight:700}.hdr-sub{font-size:11px;opacity:.75;margin-top:1px}.hdr-r{margin-left:auto;display:flex;gap:7px;align-items:center}
 .badge{background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;font-size:11px}
-.tabs{background:var(--p);display:flex;padding:0 20px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,.15);overflow-x:auto}
+.tabs{background:var(--p);display:flex;padding:0 20px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,.15);overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .tab{padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,.65);border-bottom:3px solid transparent;user-select:none;white-space:nowrap}
 .tab:hover{color:#fff}.tab.active{color:#fff;border-bottom-color:#fff}
 .btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
@@ -53,7 +26,7 @@
 .fg{margin-bottom:8px}.fg label{font-size:11px;color:var(--m);display:block;margin-bottom:3px}
 .fg input,.fg select{width:100%;padding:5px 7px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg);color:var(--t)}.fg input:focus,.fg select:focus{outline:none;border-color:var(--p)}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.tbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 12px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;flex-shrink:0}.tw{flex:1;overflow:auto}
+.tbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 12px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;flex-shrink:0}.tw{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;}
 table{width:100%;border-collapse:collapse}thead th{background:#f0f2f8;position:sticky;top:0;z-index:5;padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--m);border-bottom:2px solid var(--b);white-space:nowrap;cursor:pointer}
 thead th:hover{background:#e4e8f5;color:var(--p)}tbody tr{border-bottom:1px solid var(--b);cursor:pointer}tbody tr:hover{background:var(--pl)}tbody tr.sel{background:#dbeafe}
 tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
@@ -62,7 +35,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .chip-印{background:#fff3e0;color:#e65100}.chip-菲{background:#e8f5e9;color:#2e7d32}.chip-越{background:#e3f2fd;color:#1565c0}.exp-t{color:var(--d);font-weight:700}.soon-t{color:var(--w);font-weight:700}
 .dp{width:340px;background:var(--cd);border-left:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transform:translateX(340px);transition:transform .25s}.dp.open{transform:translateX(0)}
 .dp-hdr{padding:11px 13px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}.dp-hdr h3{font-size:13px;font-weight:700}
-.dp-body{padding:13px;flex:1;overflow-y:auto}.dp-ftr{padding:9px 13px;border-top:1px solid var(--b);display:flex;gap:7px;flex-shrink:0}
+.dp-body{padding:13px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}.dp-ftr{padding:9px 13px;border-top:1px solid var(--b);display:flex;gap:7px;flex-shrink:0}
 .fld{margin-bottom:11px}.fld label{font-size:10px;color:var(--m);display:block;margin-bottom:3px;font-weight:700;text-transform:uppercase}
 .fld input,.fld select{width:100%;padding:5px 8px;border:1px solid var(--b);border-radius:5px;font-size:12px}.fld input:focus,.fld select:focus{outline:none;border-color:var(--p)}
 .pag{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--cd);border-top:1px solid var(--b);flex-shrink:0}
@@ -109,7 +82,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .gtbar input,.gtbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
 .gouter{flex:1;display:flex;overflow:hidden}.glabels{width:220px;flex-shrink:0;display:flex;flex-direction:column;background:var(--cd);border-right:2px solid var(--b)}
 .glhdr{height:44px;flex-shrink:0;border-bottom:2px solid var(--b);display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:700;color:var(--m);background:#f0f2f8}
-.glbody{flex:1;overflow:hidden;scrollbar-width:none}.glbody::-webkit-scrollbar{display:none}.gright{flex:1;overflow:auto}
+.glbody{flex:1;overflow:hidden;scrollbar-width:none}.glbody::-webkit-scrollbar{display:none}.gright{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;}
 #gcv{display:block;cursor:crosshair}.g-tip{position:fixed;background:#1e2330;color:#fff;padding:8px 12px;border-radius:7px;font-size:12px;pointer-events:none;z-index:200;display:none;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .gleg{display:flex;gap:14px;align-items:center;font-size:11px}.ldot{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:middle}
 .fpage{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -118,7 +91,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .fc-t{background:#e8f0fb;color:var(--p)}.fc-a{background:#e8f5ee;color:var(--s)}.fc-1{background:#fff0ea;color:var(--w)}.fc-2{background:#fef9c3;color:#854d0e}.fc-3{background:#f0fdf4;color:#166534}
 .ftbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
 .ftbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
-.fbody{flex:1;display:flex;overflow:hidden}.fcw{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.fbody{flex:1;display:flex;overflow:hidden}.fcw{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch;}
 .ftw{width:400px;flex-shrink:0;border-left:1px solid var(--b);overflow-y:auto;background:var(--cd)}.ftbl{width:100%;border-collapse:collapse}
 .ftbl thead th{background:#f0f2f8;position:sticky;top:0;z-index:3;padding:7px 10px;font-size:11px;font-weight:700;color:var(--m);border-bottom:2px solid var(--b);text-align:right;white-space:nowrap}.ftbl thead th:first-child{text-align:left}
 .ftbl tbody tr{border-bottom:1px solid var(--b);cursor:pointer}.ftbl tbody tr:hover{background:var(--pl)}.ftbl tbody tr.fa{background:#dbeafe}
@@ -143,7 +116,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .cs-其他{background:#f3f4f6;color:#6b7280}
 .ctbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
 .ctbar input,.ctbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
-.cbody{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.cbody{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:9px;-webkit-overflow-scrolling:touch;}
 .ccard{background:var(--cd);border-radius:8px;border:1px solid var(--b);overflow:hidden}.ccard:hover{box-shadow:0 3px 12px rgba(0,0,0,.1)}
 .cchdr{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--b);cursor:pointer;user-select:none}.cchdr:hover{background:var(--pl)}
 .cwinfo{flex:1;min-width:0}.cwname{font-size:13px;font-weight:700}.cwmeta{font-size:11px;color:var(--m);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -169,18 +142,73 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .fbdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:6px;vertical-align:middle}.fbdot.err{background:#f87171}.fbdot.syn{background:#fbbf24;animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .sb-tog{display:none;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;line-height:1}
-.sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:49}.sb-ov.open{display:block}
-@media(max-width:900px){.sb-tog{display:block}.sb{position:fixed;top:82px;left:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:4px 0 12px rgba(0,0,0,.15)}.sb.open{transform:translateX(0)}.dp{position:fixed;top:82px;right:0;bottom:0;z-index:50;width:min(340px,95vw)!important}.ftw{width:100%;border-left:none;border-top:1px solid var(--b);max-height:280px}}
-@media(max-width:600px){.hdr-title{font-size:13px}.hdr-sub{display:none}#total-badge{display:none}}
+.sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:140}.sb-ov.open{display:block}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e2330;color:#fff;padding:8px 18px;border-radius:7px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300}.toast.show{opacity:1}
+
+/* 登入介面專用 CSS */
+#login-scr{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.log-box{background:#fff;padding:34px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.08);width:320px;text-align:center;border-top:5px solid var(--p);}
+.log-box h2{color:var(--t);margin-bottom:24px;font-size:18px;font-weight:700;}
+.log-box input{width:100%;padding:10px 14px;margin-bottom:14px;border:1px solid var(--b);border-radius:6px;font-size:14px;background:#f9fafb;transition:border-color 0.2s;}
+.log-box input:focus{outline:none;border-color:var(--p);background:#fff;}
+.log-box button{width:100%;padding:12px;background:var(--p);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;transition:background 0.2s;margin-top:8px;}
+.log-box button:hover{background:#154d8c;}
+.log-err{color:var(--d);font-size:12px;margin-bottom:15px;font-weight:600;display:none;background:#fde8e8;padding:8px;border-radius:5px;}
+
+/* ── 響應式優化 (手機/平板) ── */
+@media(max-width:900px){
+  .sb-tog{display:block}
+  .sb{position:fixed;top:0;left:0;bottom:0;height:100vh;z-index:150;transform:translateX(-100%);transition:transform .25s;box-shadow:4px 0 12px rgba(0,0,0,.15)}
+  .sb.open{transform:translateX(0)}
+  .dp{position:fixed;top:0;right:0;bottom:0;height:100vh;z-index:200;width:100vw!important;transform:translateX(100%);}
+  .dp.open{transform:translateX(0)}
+  .fbody{flex-direction:column}
+  .ftw{width:100%;border-left:none;border-top:1px solid var(--b);max-height:35vh;}
+}
+@media(max-width:768px){
+  .hdr{height:auto;flex-wrap:wrap;padding:10px 12px;}
+  .hdr-title{font-size:14px;}
+  .hdr-sub{display:none;}
+  .hdr-r{width:100%;justify-content:space-between;margin-top:8px;}
+  .gsum, .fsum, .csum { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px; }
+  .gsum > div:last-child, .fsum > div:last-child, .csum > div:last-child { grid-column:1 / -1; display:flex; justify-content:space-between; flex-direction:row !important; align-items:center !important; margin:0;}
+  .gc, .fc, .cst { min-width:0; padding:8px 6px; }
+  .fc .num, .gc .num, .cst .n { font-size:18px; }
+  .log-box { width:90%; padding:24px 20px; }
+  .glabels { width:100px; font-size: 10px;}
+  .glhdr { padding: 0 6px; }
+  .tbar, .gtbar, .ftbar, .ctbar { padding: 8px; flex-wrap: wrap; }
+  .tbar > .btn { padding: 5px 8px; font-size: 11px; }
+  .tw tbody td { padding: 8px 6px; } 
+  .cbody { padding: 8px; }
+  .modal { width:95%; max-height:85vh; margin:10px auto; }
+  #total-badge { display:none; }
+}
+@media(max-width:480px){
+  .gsum, .fsum, .csum { grid-template-columns:1fr; }
+  .tabs { padding:0; }
+  .tab { padding:8px 10px; font-size:11px; } 
+}
 </style></head><body>
-<div class="fbl" id="fbl"><div class="sp"></div><div class="msg">連線 Firebase 中…</div><div class="sub">正在載入移工資料</div></div>
+
+<div id="login-scr">
+  <div class="log-box">
+    <h2>聯捷人力 系統登入</h2>
+    <div id="log-err" class="log-err">⚠️ 帳號或密碼錯誤</div>
+    <input type="text" id="log-acc" placeholder="輸入帳號 (預設: admin)">
+    <input type="password" id="log-pwd" placeholder="輸入密碼 (預設: 123456)" onkeypress="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">登 入</button>
+  </div>
+</div>
+
+<div class="fbl" id="fbl" style="display:none;"><div class="sp"></div><div class="msg">連線 Firebase 中…</div><div class="sub">正在載入移工資料</div></div>
+
 <div class="fbst" id="fbst"></div><div class="sb-ov" id="sb-ov" onclick="toggleSB()"></div>
 <div class="hdr">
   <button class="sb-tog" onclick="toggleSB()">☰</button>
   <div><div class="hdr-title">聯捷人力仲介有限公司 — 移工客戶服務系統</div><div class="hdr-sub">在台移工管理平台</div></div>
   <div class="hdr-r">
-    <span id="fb-ind" style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">🔴 連線中…</span>
+    <span id="fb-ind" style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">🔴 未連線</span>
     <span class="badge" id="total-badge">共 0 筆</span>
     <button class="btn btn-wh" onclick="openImport()">📥 匯入更新</button>
     <button class="btn btn-wh" onclick="exportCSV()">📤 匯出 CSV</button>
@@ -324,7 +352,21 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 </div></div>
 <div class="g-tip" id="g-tip"></div><div class="toast" id="toast"></div>
 <script>
-// ── Firebase 防護升級版 ──────────────────────────────────────────────────────────
+// ── 登入驗證邏輯 ──────────────────────────────────────────────────────────────
+function doLogin() {
+  const acc = document.getElementById('log-acc').value;
+  const pwd = document.getElementById('log-pwd').value;
+  // 這裡設定您的帳號與密碼，您可以自行在此修改
+  if(acc === 'admin' && pwd === '123456') {
+    document.getElementById('login-scr').style.display = 'none';
+    document.getElementById('fbl').style.display = 'flex'; // 顯示 Firebase 載入畫面
+    loadFB(); // 密碼正確才啟動資料載入
+  } else {
+    document.getElementById('log-err').style.display = 'block';
+  }
+}
+
+// ── Firebase 防護升級版 ────────────────────────────────────────────────────────
 let db = null;
 const COL = 'workers';
 
@@ -722,8 +764,8 @@ function renderFeeTable(){
 function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftbl tbody tr').forEach(tr=>tr.classList.toggle('fa',tr.dataset.m===m));const d=FEE_DATA.find(x=>x.month===m);if(d){showDrill(d);document.getElementById('f-c1').textContent=d.cnt_1800;document.getElementById('f-c2').textContent=d.cnt_1700;document.getElementById('f-c3').textContent=d.cnt_1500;}}
 function exportFeeCSV(){dlCSV('﻿月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
-loadFB();
- 
+
+// ── CRM ──────────────────────────────────────────────────────────────
 function renderCRM(){
   const q=(document.getElementById('cq').value||'').toLowerCase(),ft=document.getElementById('cf').value,sort=document.getElementById('csrt').value;
   let wr=workers.filter(w=>w.records&&w.records.length);
@@ -739,7 +781,7 @@ function renderCRM(){
   document.getElementById('ccnt').textContent='顯示'+wr.length+'人';
   const body=document.getElementById('cbody');
   if(!wr.length){body.innerHTML='<div class="cempty">'+(q||ft?'沒有符合條件的紀錄':'尚無服務紀錄<br><span style="font-size:12px">在「在台名單」點選移工的編輯按鈕，即可新增客服紀錄</span>')+'</div>';return;}
-  const TC={"電話": "#1a5fa8", "訪視": "#1b8a4e", "問題": "#c0392b", "回報": "#c47d00", "離境": "#5b21b6", "解約驗證": "#9d174d", "想轉換雇主": "#0369a1", "雇主想換": "#166534", "服務費欠費": "#991b1b", "想重入國": "#065f46", "薪薪問題": "#854d0e", "其他": "#6b7280"};
+  const TC={"電話": "#1a5fa8", "訪視": "#1b8a4e", "問題": "#c0392b", "回報": "#c47d00", "離境": "#5b21b6", "解約驗證": "#9d174d", "想轉換雇主": "#0369a1", "雇主想換": "#166534", "服務費欠費": "#991b1b", "想重入國": "#065f46", "薪資問題": "#854d0e", "其他": "#6b7280"};
   const TB={"電話": "#e8f0fb", "訪視": "#e8f5ee", "問題": "#fde8e8", "回報": "#fffbea", "離境": "#ede9fe", "解約驗證": "#fce7f3", "想轉換雇主": "#e0f2fe", "雇主想換": "#f0fdf4", "服務費欠費": "#fef2f2", "想重入國": "#ecfdf5", "薪資問題": "#fef9c3", "其他": "#f3f4f6"};
   body.innerHTML=wr.map(w=>{
     const recs=ft?w.records.filter(r=>r.type===ft):w.records;const last=recs[0]?.date||'';
@@ -756,5 +798,3 @@ function gotoW(wid){const lt=document.querySelector('.tab');switchTab('list',lt)
 function exportCRMCSV(){const rows=['移工英文姓名,中文名,雇主,紀錄日期,類型,內容'];workers.forEach(w=>(w.records||[]).forEach(r=>rows.push([w.name_en,w.name_zh,w.employer,r.date,r.type,'"'+r.content.replace(/"/g,'""')+'"'].join(','))));dlCSV('\uFEFFTW'+rows.join('\n'),'crm_'+isoDate()+'.csv');showToast('📤 服務紀錄CSV已匯出');}
  
 </script></body></html>
-
-```
