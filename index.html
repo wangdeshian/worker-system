@@ -323,7 +323,7 @@ function showOfflineBtn(reason){
     document.getElementById('fbl').appendChild(b);
   }
 }
-async async function loadFB(){
+async function loadFB(){
   const timer=setTimeout(()=>showOfflineBtn('連線逾時 — 請至 Firestore 規則設 allow read,write:if true 後發布'),4000);
   try{
     const snap=await db.collection(COL).get();
