@@ -7,8 +7,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--p:#1a5fa8;--pl:#e8f0fb;--s:#1b8a4e;--w:#c47d00;--d:#c0392b;--bg:#f5f6fa;--cd:#fff;--b:#dde1ea;--t:#1e2330;--m:#6b7280}
-*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;overflow:hidden;font-family:'Segoe UI','Microsoft JhengHei',sans-serif;font-size:13px;color:var(--t);background:var(--bg)}
-.hdr{background:var(--p);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0}
+*{box-sizing:border-box;margin:0;padding:0}
+/* 核心修復：升級為 flex 佈局與 100dvh，解決手機底部被裁切問題 */
+html,body{height:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font-family:'Segoe UI','Microsoft JhengHei',sans-serif;font-size:13px;color:var(--t);background:var(--bg)}
+.hdr{background:var(--p);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;min-height:48px;flex-shrink:0}
 .hdr-title{font-size:15px;font-weight:700}.hdr-sub{font-size:11px;opacity:.75;margin-top:1px}.hdr-r{margin-left:auto;display:flex;gap:7px;align-items:center}
 .badge{background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;font-size:11px}
 .tabs{background:var(--p);display:flex;padding:0 20px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,.15);overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -18,7 +20,7 @@
 .btn-p{background:var(--p);color:#fff}.btn-p:hover{background:#154d8c}.btn-s{background:var(--s);color:#fff}.btn-w{background:var(--w);color:#fff}.btn-d{background:var(--d);color:#fff}
 .btn-wh{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}.btn-wh:hover{background:rgba(255,255,255,.25)}
 .btn-o{background:transparent;color:var(--p);border:1.5px solid var(--p)}.btn-o:hover{background:var(--pl)}.btn-sm{padding:3px 8px;font-size:11px}
-.page{display:none;flex:1;overflow:hidden;height:calc(100vh - 82px)}.page.active{display:flex}
+.page{display:none;flex:1;overflow:hidden;min-height:0}.page.active{display:flex}
 .sb{width:234px;background:var(--cd);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
 .sb-sec{padding:11px 12px;border-bottom:1px solid var(--b)}.sb-sec h3{font-size:10px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:11px 12px;border-bottom:1px solid var(--b)}
@@ -158,9 +160,9 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 /* ── 響應式優化 (手機/平板) ── */
 @media(max-width:900px){
   .sb-tog{display:block}
-  .sb{position:fixed;top:0;left:0;bottom:0;height:100vh;z-index:150;transform:translateX(-100%);transition:transform .25s;box-shadow:4px 0 12px rgba(0,0,0,.15)}
+  .sb{position:fixed;top:0;left:0;bottom:0;height:100dvh;z-index:150;transform:translateX(-100%);transition:transform .25s;box-shadow:4px 0 12px rgba(0,0,0,.15)}
   .sb.open{transform:translateX(0)}
-  .dp{position:fixed;top:0;right:0;bottom:0;height:100vh;z-index:200;width:100vw!important;transform:translateX(100%);}
+  .dp{position:fixed;top:0;right:0;bottom:0;height:100dvh;z-index:200;width:100vw!important;transform:translateX(100%);}
   .dp.open{transform:translateX(0)}
   .fbody{flex-direction:column}
   .ftw{width:100%;border-left:none;border-top:1px solid var(--b);max-height:35vh;}
@@ -171,7 +173,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   .hdr-sub{display:none;}
   .hdr-r{width:100%;justify-content:space-between;margin-top:8px;}
   
-  /* 將原本的 Grid 多宮格改為單列橫向滑動，避免吃掉垂直高度 */
+  /* 確保資料統計區不會把下方清單擠出去 */
   .gsum, .fsum, .csum { display:flex; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:10px; scrollbar-width:none; /* Firefox */ }
   .gsum::-webkit-scrollbar, .fsum::-webkit-scrollbar, .csum::-webkit-scrollbar { display:none; /* Chrome/Safari */ }
   .gsum > div:last-child, .fsum > div:last-child, .csum > div:last-child { flex-shrink:0; display:flex; align-items:center; }
@@ -185,7 +187,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   .tbar > .btn { padding: 5px 8px; font-size: 11px; }
   .tw tbody td { padding: 8px 6px; } 
   .cbody { padding: 8px; }
-  .modal { width:95%; max-height:85vh; margin:10px auto; }
+  .modal { width:95%; max-height:85dvh; margin:10px auto; }
   #total-badge { display:none; }
 }
 @media(max-width:480px){
@@ -757,7 +759,7 @@ function showDrill(md){
   const [yr,mo]=md.month.split('/').map(Number);const mD=new Date(yr,mo-1,1);
   const rows=[];FEE_W.forEach(w=>{const entry=new Date(w.entry),limit=new Date(w.limit),me=new Date(yr,mo,0);if(entry>me||limit<mD)return;const mi=mbw(entry,mD);const fee=mi<12?900:mi<24?850:750;rows.push({name:w.name,emp:(w.employer||'').replace(/ \(接\)/g,'').replace(/ \(遞:\)/g,'').substring(0,12),mi,fee});});
   rows.sort((a,b)=>a.fee-b.fee||a.emp.localeCompare(b.emp));
-  document.getElementById('drill-hdr').textContent=md.month+'　共'+md.workers+'人　合計 NT$'+md.total.toLocaleString();
+  document.getElementById('drill-hdr').textContent=md.month+' 共'+md.workers+'人 合計 NT$'+md.total.toLocaleString();
   const CC={900:'#e85c26',850:'#c47d00',750:'#1b8a4e'};
   document.getElementById('drill-body').innerHTML=rows.map(r=>'<tr><td>'+r.name+'</td><td style="color:var(--m)">'+r.emp+'</td><td style="text-align:right">'+r.mi+'個月</td><td style="color:'+CC[r.fee]+';font-weight:700">NT$'+r.fee.toLocaleString()+'</td></tr>').join('');
   document.getElementById('drill').style.display='';}
@@ -768,7 +770,8 @@ function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftb
 function exportFeeCSV(){dlCSV('﻿月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
-// ── CRM ──────────────────────────────────────────────────────────────
+// 注意：原先直接執行的 loadFB() 已被移除，改為在 doLogin() 成功時才觸發。
+ 
 function renderCRM(){
   const q=(document.getElementById('cq').value||'').toLowerCase(),ft=document.getElementById('cf').value,sort=document.getElementById('csrt').value;
   let wr=workers.filter(w=>w.records&&w.records.length);
