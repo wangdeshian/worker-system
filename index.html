@@ -151,16 +151,6 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:140}.sb-ov.open{display:block}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e2330;color:#fff;padding:8px 18px;border-radius:7px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300}.toast.show{opacity:1}
 
-/* 登入介面專用 CSS */
-#login-scr{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;}
-.log-box{background:#fff;padding:34px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.08);width:320px;text-align:center;border-top:5px solid var(--p);}
-.log-box h2{color:var(--t);margin-bottom:24px;font-size:18px;font-weight:700;}
-.log-box input{width:100%;padding:10px 14px;margin-bottom:14px;border:1px solid var(--b);border-radius:6px;font-size:14px;background:#f9fafb;transition:border-color 0.2s;}
-.log-box input:focus{outline:none;border-color:var(--p);background:#fff;}
-.log-box button{width:100%;padding:12px;background:var(--p);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;transition:background 0.2s;margin-top:8px;}
-.log-box button:hover{background:#154d8c;}
-.log-err{color:var(--d);font-size:12px;margin-bottom:15px;font-weight:600;display:none;background:#fde8e8;padding:8px;border-radius:5px;}
-
 /* ── 響應式優化 (手機/平板) ── */
 @media(max-width:900px){
   .sb-tog{display:block}
@@ -199,16 +189,6 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   .tab { padding:8px 10px; font-size:11px; } 
 }
 </style></head><body>
-
-<div id="login-scr">
-  <div class="log-box">
-    <h2>聯捷人力 系統登入</h2>
-    <div id="log-err" class="log-err">⚠️ 帳號或密碼錯誤</div>
-    <input type="text" id="log-acc" placeholder="輸入帳號 (預設: admin)">
-    <input type="password" id="log-pwd" placeholder="輸入密碼 (預設: 123456)" onkeypress="if(event.key==='Enter')doLogin()">
-    <button onclick="doLogin()">登 入</button>
-  </div>
-</div>
 
 <div class="fbl" id="fbl" style="display:none;"><div class="sp"></div><div class="msg">連線 Firebase 中…</div><div class="sub">正在載入移工資料</div></div>
 
@@ -362,18 +342,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 <div class="g-tip" id="g-tip"></div><div class="toast" id="toast"></div>
 <script>
 // ── 登入驗證邏輯 ──────────────────────────────────────────────────────────────
-function doLogin() {
-  const acc = document.getElementById('log-acc').value;
-  const pwd = document.getElementById('log-pwd').value;
-  // 這裡設定您的帳號與密碼，您可以自行在此修改
-  if(acc === 'admin' && pwd === '123456') {
-    document.getElementById('login-scr').style.display = 'none';
-    document.getElementById('fbl').style.display = 'flex'; // 顯示 Firebase 載入畫面
-    loadFB(); // 密碼正確才啟動資料載入
-  } else {
-    document.getElementById('log-err').style.display = 'block';
-  }
-}
+document.getElementById('fbl').style.display='flex'; loadFB(); // 直接載入，不需登入
 
 // ── Firebase 防護升級版 ────────────────────────────────────────────────────────
 let db = null;
