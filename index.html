@@ -51,8 +51,6 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .rec-add{display:flex;flex-direction:column;gap:6px;background:#f8f9fc;border-radius:6px;padding:10px}
 .rec-add select,.rec-add textarea{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:#fff;resize:none}.rec-add textarea{height:60px}
 .rec-add-row{display:flex;gap:6px;align-items:center}.rec-cnt{background:#e8f0fb;color:var(--p);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700}
-
-/* 顏色變數 */
 .rec-item.type-電話,.crr.type-電話{border-left-color:#1a5fa8}
 .rec-item.type-訪視,.crr.type-訪視{border-left-color:#1b8a4e}
 .rec-item.type-問題,.crr.type-問題{border-left-color:#c0392b}
@@ -77,22 +75,9 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .rec-type-想重入國,.cs-想重入國{background:#ecfdf5;color:#065f46}
 .rec-type-薪資問題,.cs-薪資問題{background:#fef9c3;color:#854d0e}
 .rec-type-其他,.cs-其他{background:#f3f4f6;color:#6b7280}
-
-/* 核心修復：全面升級統計區塊的內部佈局與行距，保證文字不被裁切 */
-.gc{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 16px;border-radius:8px;min-width:100px}
-.gc .num{font-size:22px;font-weight:800;line-height:1.1}
-.gc .lbl{font-size:11px;font-weight:600;margin-top:4px;line-height:1.3}
-
-.fc{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 18px;border-radius:8px;min-width:120px}
-.fc .num{font-size:22px;font-weight:800;line-height:1.1}
-.fc .lbl{font-size:11px;font-weight:600;margin-top:4px;line-height:1.3}
-
-.cst{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:10px 12px;border-radius:8px;min-width:78px}
-.cst .n{font-size:18px;font-weight:800;line-height:1.1}
-.cst .l{font-size:11px;font-weight:600;margin-top:4px;line-height:1.3;white-space:nowrap}
-
 .gpage{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
 .gsum{display:flex;gap:10px;padding:10px 16px;background:var(--cd);border-bottom:1px solid var(--b);flex-shrink:0;align-items:center;flex-wrap:wrap}
+.gc{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 16px;border-radius:8px;min-width:100px}.gc .num{font-size:22px;font-weight:800;line-height:1.1}.gc .lbl{font-size:11px;font-weight:600;margin-top:4px;line-height:1.3}
 .gc-e{background:#fde8e8;color:#c0392b}.gc-u{background:#fff0ea;color:#e85c26}.gc-s{background:#fffbea;color:#c47d00}.gc-n{background:#e8f5ee;color:#1b8a4e}
 .gtbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
 .gtbar input,.gtbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
@@ -103,6 +88,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .gleg{display:flex;gap:14px;align-items:center;font-size:11px}.ldot{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:middle}
 .fpage{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .fsum{display:flex;gap:10px;padding:10px 16px;background:var(--cd);border-bottom:1px solid var(--b);flex-shrink:0;flex-wrap:wrap}
+.fc{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 18px;border-radius:8px;min-width:120px}.fc .num{font-size:22px;font-weight:800;line-height:1.1}.fc .lbl{font-size:11px;font-weight:600;margin-top:4px;line-height:1.3}
 .fc-t{background:#e8f0fb;color:var(--p)}.fc-a{background:#e8f5ee;color:var(--s)}.fc-1{background:#fff0ea;color:var(--w)}.fc-2{background:#fef9c3;color:#854d0e}.fc-3{background:#f0fdf4;color:#166534}
 .ftbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
 .ftbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
@@ -117,6 +103,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .cpage{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .csum{display:flex;gap:8px;padding:10px 14px;background:var(--cd);border-bottom:1px solid var(--b);flex-shrink:0;flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none;}
 .csum::-webkit-scrollbar{display:none;}
+.cst{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:10px 12px;border-radius:8px;min-width:78px}.cst .n{font-size:18px;font-weight:800;line-height:1.1}.cst .l{font-size:11px;font-weight:600;margin-top:4px;line-height:1.3;white-space:nowrap}
 .cs-total{background:#e8f0fb;color:var(--p)}
 .ctbar{background:var(--cd);border-bottom:1px solid var(--b);padding:7px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
 .ctbar input,.ctbar select{padding:5px 9px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:var(--bg)}
@@ -200,8 +187,8 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   <div class="log-box">
     <h2>聯捷人力 系統登入</h2>
     <div id="log-err" class="log-err">⚠️ 帳號或密碼錯誤</div>
-    <input type="text" id="log-acc" placeholder="輸入帳號 (預設: admin)">
-    <input type="password" id="log-pwd" placeholder="輸入密碼 (預設: 123456)" onkeypress="if(event.key==='Enter')doLogin()">
+    <input type="text" id="log-acc" placeholder="輸入帳號 (admin)">
+    <input type="password" id="log-pwd" placeholder="輸入密碼 (123456)" onkeypress="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">登 入</button>
   </div>
 </div>
@@ -359,15 +346,23 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 <div class="g-tip" id="g-tip"></div><div class="toast" id="toast"></div>
 <script>
 // ── 登入驗證邏輯 ──────────────────────────────────────────────────────────────
-setTimeout(function(){document.getElementById('fbl').style.display='flex';loadFB();},0); // 直接載入，不需登入
+function doLogin() {
+  const acc = document.getElementById('log-acc').value;
+  const pwd = document.getElementById('log-pwd').value;
+  if(acc === 'admin' && pwd === '123456') {
+    document.getElementById('login-scr').style.display = 'none';
+    document.getElementById('fbl').style.display = 'flex';
+    loadFB();
+  } else {
+    document.getElementById('log-err').style.display = 'block';
+  }
+}
 
 // ── Firebase 防護升級版 ────────────────────────────────────────────────────────
 let db = null;
 const COL = 'workers';
-
 function docId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
 function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(tp==='err'?'err':tp==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(tp!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
-
 async function fbSave(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
 async function fbDel(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
 async function fbBatchReplace(list){
@@ -379,7 +374,6 @@ async function fbBatchReplace(list){
     showFbSt('✅ 已同步 '+list.length+' 筆');
   }catch(e){showFbSt('批次失敗','err');}
 }
-
 function showOfflineBtn(reason){
   document.querySelector('#fbl .msg').textContent='⚠️ Firebase 連線失敗';
   document.querySelector('#fbl .sub').textContent=reason||'請檢查網路狀態或關閉阻擋廣告擴充功能';
@@ -391,7 +385,6 @@ function showOfflineBtn(reason){
     document.getElementById('fbl').appendChild(b);
   }
 }
-
 async function loadFB(){
   const timer=setTimeout(()=>showOfflineBtn('連線逾時 — 網路異常或被瀏覽器阻擋'),4000);
   try{
@@ -412,15 +405,12 @@ async function loadFB(){
     clearTimeout(timer);showOfflineBtn(e.message||'連線失敗');
   }
 }
-// ── Data ──────────────────────────────────────────────────────────────────────
 let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
 const PAGE=50,sel=new Set();let editId=null,impBuf=[];
 let GDATA=[],FEE_DATA=[],FEE_W=[],MONTHS=[],TOTAL_DAYS=365;
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function rocToDate(s){if(!s)return null;const m=s.match(/(\d{2,3})[.\\/\-](\d{1,2})[.\\/\-](\d{1,2})/);if(!m)return null;try{return new Date(+m[1]+1911,+m[2]-1,+m[3]);}catch{return null;}}
 function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
-// ── Compute Dynamic ───────────────────────────────────────────────────────────
 function computeDynamic(){
   const today=new Date();today.setHours(0,0,0,0);
   GDATA=workers.filter(w=>w.work_limit).map((w,i)=>{
@@ -453,7 +443,6 @@ function updFeeUI(){
   document.getElementById('fee-avg').textContent='NT$'+(FEE_DATA.length?Math.round(gt/FEE_DATA.length):0).toLocaleString();
   document.getElementById('fee-total-foot').textContent='NT$'+gt.toLocaleString();
 }
-// ── Tabs / UI ─────────────────────────────────────────────────────────────────
 function switchTab(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -469,7 +458,6 @@ function updateStats(){
   document.getElementById('st-60').textContent=e60;document.getElementById('st-tk').textContent=tak;
   document.getElementById('total-badge').textContent='共 '+workers.length+' 筆';
 }
-// ── Filter / Table ────────────────────────────────────────────────────────────
 function filt(){
   const q=document.getElementById('q').value.toLowerCase(),nat=document.getElementById('f-nat').value,tak=document.getElementById('f-tak').value,lim=document.getElementById('f-lim').value;
   filtered=workers.filter(w=>{
@@ -515,7 +503,6 @@ function toggleRow(id,c){c?sel.add(id):sel.delete(id);updSel();renderTable();}
 function toggleAll(c){if(c)filtered.forEach(w=>sel.add(w.id));else sel.clear();['ck-all','ck-all2'].forEach(id=>document.getElementById(id).checked=c);renderTable();}
 function updSel(){const n=sel.size;document.getElementById('sel-info').textContent=n?'已選取'+n+'筆':'';document.getElementById('btn-del').style.display=n?'':'none';}
 function rowCk(e,id){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;openDP(id);}
-// ── Detail / Records ──────────────────────────────────────────────────────────
 const FIELDS=[['entry_date','入境日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
 function openDP(id){
   editId=id;const w=workers.find(x=>x.id===id);if(!w)return;if(!w.records)w.records=[];
@@ -530,14 +517,12 @@ function openDP(id){
 }
 function closeDP(){document.getElementById('dp').classList.remove('open');editId=null;}
 function saveDP(){const w=workers.find(x=>x.id===editId);if(!w)return;FIELDS.forEach(([k])=>{const el=document.getElementById('d_'+k);if(el)w[k]=el.value;});computeDynamic();filt();updateStats();fbSave(w);showToast('✅ 已儲存');closeDP();}
- 
 function buildRec(w){
   const recs=w.records||[];const today=new Date().toLocaleDateString('zh-TW');
   const list=!recs.length?'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無紀錄</div>'
     :recs.map((r,i)=>'<div class="rec-item type-'+r.type+'"><div class="rec-meta"><span class="rec-date">'+r.date+'</span><span class="rec-type rec-type-'+r.type+'">'+r.type+'</span></div><div class="rec-content">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div><button class="rec-del" onclick="delRec('+w.id+','+i+')" title="刪除">✕</button></div>').join('');
   return'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1"><option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option></select><span style="font-size:11px;color:var(--m)">'+today+'</span></div><textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
 }
-
 function addRec(wid){
   const w=workers.find(x=>x.id===wid);if(!w)return;if(!w.records)w.records=[];
   const type=document.getElementById('rec-type').value,txt=document.getElementById('rec-txt').value.trim();
@@ -549,7 +534,6 @@ function addRec(wid){
   if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
 }
 function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');if(old)old.outerHTML=buildRec(w);showToast('🗑 紀錄已刪除');}
- 
 function openBatch(){if(!sel.size){showToast('請先勾選移工');return;}
   document.getElementById('b-cnt').textContent=sel.size;
   document.getElementById('b-list').innerHTML=workers.filter(w=>sel.has(w.id)).map(w=>'<div>'+(w.name_en||w.name_zh)+' / '+w.employer+'</div>').join('');
@@ -599,44 +583,26 @@ function processCSV(file){
 function showImpPrev(name){
   document.getElementById('imp-prev').innerHTML='<p style="font-size:12px;margin-bottom:7px">📄 <strong>'+name+'</strong>｜解析到 <strong>'+impBuf.length+' 筆</strong></p><div class="sl">'+impBuf.slice(0,8).map(w=>'<div>'+(w.name_en||w.name_zh)+' / '+w.employer+'</div>').join('')+(impBuf.length>8?'<div>…及其他'+(impBuf.length-8)+'筆</div>':'')+'</div>';
   document.getElementById('btn-ci').style.display='';}
-  
-// ── 自動去重匯入邏輯 ──────────────────────────────────────────────────────────
 function confirmImport(){
   const gk = w => (w.resident_id || w.passport || '').trim();
   const uMap = new Map();
   const uNoKey = [];
-  
-  impBuf.forEach(imp => {
-    const k = gk(imp);
-    if(k) uMap.set(k, imp); 
-    else uNoKey.push(imp);
-  });
-
+  impBuf.forEach(imp => { const k = gk(imp); if(k) uMap.set(k, imp); else uNoKey.push(imp); });
   const nk = new Set(uMap.keys());
   let added=0, updated=0, removed=0;
   const merged = [];
-
   [...uMap.values(), ...uNoKey].forEach((imp, i) => {
     const k = gk(imp);
     const ex = workers.find(w => k && gk(w)===k);
-    if(ex){
-      merged.push({...imp, id: ex.id, records: ex.records||[]});
-      updated++;
-    }else{
-      merged.push({...imp, id: Date.now()+i+Math.random(), records: []});
-      added++;
-    }
+    if(ex){ merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++; }
+    else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
-
   removed = workers.filter(w => { const k=gk(w); return k && !nk.has(k); }).length;
-
   workers = merged;
   cov('ov-import'); computeDynamic(); filt(); updateStats();
-  
   showToast('✅ 新增'+added+'、更新'+updated+'、移除'+removed+'筆 (已過濾重複)');
   fbBatchReplace(workers);
 }
-
 function exportCSV(){
   const H=['入境日','離境日','雇主','工號','英文姓名','中文名','性別','國籍','護照號碼','護照到期','工作期限','離管狀態','聘可文號','居留證號','任用來源','接管代碼','業務員'];
   const K=['entry_date','exit_date','employer','worker_id','name_en','name_zh','gender','nationality','passport','passport_exp','work_limit','status','permit_no','resident_id','source','takeover_code','salesman'];
@@ -645,11 +611,6 @@ function exportCSV(){
 function dlCSV(c,n){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv;charset=utf-8'}));a.download=n;a.click();}
 function isoDate(){return new Date().toISOString().slice(0,10);}
 function cov(id){document.getElementById(id).classList.remove('open');}
-// Gantt
-const HDR_H=44,ROW_H=24;let gRows=[],gScale=1;
-const GC={expired:'#c0392b',urgent:'#e85c26',soon:'#c47d00',normal:'#1b8a4e'};
-const GL={expired:'已過期',urgent:'緊急',soon:'即將到期',normal:'正常'};
-function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 function buildGantt(){
   if(!GDATA.length){document.getElementById('glbody').innerHTML='';document.getElementById('gcnt').textContent='尚無資料';return;}
   const q=(document.getElementById('gq').value||'').toLowerCase(),fs=document.getElementById('gf').value,sort=document.getElementById('gs').value;
@@ -708,8 +669,6 @@ gcvEl.addEventListener('mousemove',e=>{
 gcvEl.addEventListener('mouseleave',()=>document.getElementById('g-tip').style.display='none');
 window.addEventListener('resize',()=>{if(document.getElementById('page-gantt').classList.contains('active'))drawGantt();});
 function exportGanttCSV(){dlCSV('﻿序,雇主,移工姓名,工作期限(民國),工作期限(西元),剩餘天數,狀態\n'+GDATA.map((r,i)=>[i+1,r.employer,r.name,r.work_limit_roc,r.work_limit_ad,r.days_left,r.status].map(v=>'"'+v+'"').join(',')).join('\n'),'gantt_'+isoDate()+'.csv');showToast('📤 甘特圖CSV已匯出');}
-// Fee
-let fActiveM=null,fCanvas=null,fCtx=null;
 function initFee(){
   if(fCanvas&&fCanvas._ok){renderFeeTable();renderFeeChart();return;}
   fCanvas=document.getElementById('fcv');fCtx=fCanvas.getContext('2d');fCanvas._ok=true;
@@ -759,9 +718,6 @@ function renderFeeTable(){
 function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftbl tbody tr').forEach(tr=>tr.classList.toggle('fa',tr.dataset.m===m));const d=FEE_DATA.find(x=>x.month===m);if(d){showDrill(d);document.getElementById('f-c1').textContent=d.cnt_1800;document.getElementById('f-c2').textContent=d.cnt_1700;document.getElementById('f-c3').textContent=d.cnt_1500;}}
 function exportFeeCSV(){dlCSV('﻿月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
-
-// 注意：原先直接執行的 loadFB() 已被移除，改為在 doLogin() 成功時才觸發。
- 
 function renderCRM(){
   const q=(document.getElementById('cq').value||'').toLowerCase(),ft=document.getElementById('cf').value,sort=document.getElementById('csrt').value;
   let wr=workers.filter(w=>w.records&&w.records.length);
@@ -792,5 +748,4 @@ function renderCRM(){
 function togCC(wid){const b=document.getElementById('cc-'+wid),ic=document.getElementById('ci-'+wid);ic.textContent=b.classList.toggle('open')?'▼':'▶';}
 function gotoW(wid){const lt=document.querySelector('.tab');switchTab('list',lt);setTimeout(()=>openDP(wid),80);}
 function exportCRMCSV(){const rows=['移工英文姓名,中文名,雇主,紀錄日期,類型,內容'];workers.forEach(w=>(w.records||[]).forEach(r=>rows.push([w.name_en,w.name_zh,w.employer,r.date,r.type,'"'+r.content.replace(/"/g,'""')+'"'].join(','))));dlCSV('\uFEFFTW'+rows.join('\n'),'crm_'+isoDate()+'.csv');showToast('📤 服務紀錄CSV已匯出');}
- 
 </script></body></html>
