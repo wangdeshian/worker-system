@@ -759,4 +759,21 @@ function renderCRM(){
   document.getElementById('crm-total').textContent=workers.filter(w=>w.records&&w.records.length).length;
   document.getElementById('ccnt').textContent='顯示'+wr.length+'人';
   const body=document.getElementById('cbody');
-  if(!wr.length){body.innerHTML='<div class="cempty">'+(q||ft?'沒有符合條件的紀錄':'尚無服務紀錄<br><span style="fo
+  if(!wr.length){body.innerHTML='<div class="cempty">'+(q||ft?'沒有符合條件的紀錄':'尚無服務紀錄<br><span style="fofont-size:12px">在「在台名單」點選移工的編輯按鈕，即可新增客服紀錄</span>')+'</div>';return;}
+  const TC={"電話": "#1a5fa8", "訪視": "#1b8a4e", "問題": "#c0392b", "回報": "#c47d00", "離境": "#5b21b6", "解約驗證": "#9d174d", "想轉換雇主": "#0369a1", "雇主想換": "#166534", "服務費欠費": "#991b1b", "想重入國": "#065f46", "薪資問題": "#854d0e", "其他": "#6b7280"};
+  const TB={"電話": "#e8f0fb", "訪視": "#e8f5ee", "問題": "#fde8e8", "回報": "#fffbea", "離境": "#ede9fe", "解約驗證": "#fce7f3", "想轉換雇主": "#e0f2fe", "雇主想換": "#f0fdf4", "服務費欠費": "#fef2f2", "想重入國": "#ecfdf5", "薪資問題": "#fef9c3", "其他": "#f3f4f6"};
+  body.innerHTML=wr.map(w=>{
+    const recs=ft?w.records.filter(r=>r.type===ft):w.records;const last=recs[0]?.date||'';
+    const emp=(w.employer||'').replace(/ \(接\)/g,'').replace(/ \(遞:\)/g,'');
+    const dl=daysLeft(w.work_limit);const dls=dl===null?'':dl<0?'⚠️已到期':dl<=60?'⚠️剩'+dl+'天':'剩'+dl+'天';
+    const recsHtml=recs.map(r=>'<div class="crr type-'+r.type+'"><div class="cri"><span class="d">'+r.date+'</span><span class="crt" style="background:'+(TB[r.type]||'#f3f4f6')+';color:'+(TC[r.type]||'#6b7280')+'">'+r.type+'</span></div><div class="crc">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div></div>').join('');
+    return'<div class="ccard"><div class="cchdr" onclick="togCC('+w.id+')"><span class="tico" id="ci-'+w.id+'">▶</span>'+
+      '<div class="cwinfo"><div class="cwname">'+(w.name_en||'')+(w.name_zh?' / '+w.name_zh:'')+' </div><div class="cwmeta">'+emp+(dls?' · '+dls:'')+' · 工作期限 '+(w.work_limit||'-')+'</div></div>'+
+      '<div class="cbadge"><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+last.substring(0,10)+'</span><span class="cgo" onclick="event.stopPropagation();gotoW('+w.id+')">→ 編輯</span></div>'+
+      '</div><div class="ccbody" id="cc-'+w.id+'">'+recsHtml+'</div></div>';
+  }).join('');}
+function togCC(wid){const b=document.getElementById('cc-'+wid),ic=document.getElementById('ci-'+wid);ic.textContent=b.classList.toggle('open')?'▼':'▶';}
+function gotoW(wid){const lt=document.querySelector('.tab');switchTab('list',lt);setTimeout(()=>openDP(wid),80);}
+function exportCRMCSV(){const rows=['移工英文姓名,中文名,雇主,紀錄日期,類型,內容'];workers.forEach(w=>(w.records||[]).forEach(r=>rows.push([w.name_en,w.name_zh,w.employer,r.date,r.type,'"'+r.content.replace(/"/g,'""')+'"'].join(','))));dlCSV('\uFEFFTW'+rows.join('\n'),'crm_'+isoDate()+'.csv');showToast('📤 服務紀錄CSV已匯出');}
+ 
+</script></body></html>
