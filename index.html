@@ -19,7 +19,7 @@ html,body{height:100%;height:100dvh;display:flex;flex-direction:column;overflow:
 .btn-p{background:var(--p);color:#fff}.btn-p:hover{background:#154d8c}.btn-s{background:var(--s);color:#fff}.btn-w{background:var(--w);color:#fff}.btn-d{background:var(--d);color:#fff}
 .btn-wh{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}.btn-wh:hover{background:rgba(255,255,255,.25)}
 .btn-o{background:transparent;color:var(--p);border:1.5px solid var(--p)}.btn-o:hover{background:var(--pl)}.btn-sm{padding:3px 8px;font-size:11px}
-.page{display:none;flex:1;overflow:hidden;min-height:0}.page.active{display:flex}
+.page{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}.page.active{display:flex}
 .sb{width:234px;background:var(--cd);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
 .sb-sec{padding:11px 12px;border-bottom:1px solid var(--b)}.sb-sec h3{font-size:10px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:11px 12px;border-bottom:1px solid var(--b)}
@@ -146,7 +146,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .log-box button:hover{background:#154d8c;}
 .log-err{color:var(--d);font-size:12px;margin-bottom:15px;font-weight:600;display:none;background:#fde8e8;padding:8px;border-radius:5px;}
 
-/* ── 響應式優化 (手機/平板) ── */
+/* ── 響應式優化 ── */
 @media(max-width:900px){
   .sb-tog{display:block}
   .sb{position:fixed;top:0;left:0;bottom:0;height:100dvh;z-index:150;transform:translateX(-100%);transition:transform .25s;box-shadow:4px 0 12px rgba(0,0,0,.15)}
@@ -161,25 +161,14 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   .hdr-title{font-size:14px;}
   .hdr-sub{display:none;}
   .hdr-r{width:100%;justify-content:space-between;margin-top:8px;}
-  
-  .gsum, .fsum { display:flex; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:10px; scrollbar-width:none; }
+  .gsum, .fsum { display:flex; flex-wrap:nowrap; overflow-x:auto; padding:10px; scrollbar-width:none; }
   .gsum::-webkit-scrollbar, .fsum::-webkit-scrollbar { display:none; }
-  .gsum > div:last-child, .fsum > div:last-child { flex-shrink:0; display:flex; align-items:center; }
-  .csum > div:last-child { flex-shrink:0; display:flex; align-items:center; margin-left: auto; }
-  
+  .csum { overflow-x:auto; }
+  .gc, .fc, .cst { flex:0 0 auto; min-width:85px; padding:8px 6px; }
   .log-box { width:90%; padding:24px 20px; }
   .glabels { width:100px; font-size: 10px;}
-  .glhdr { padding: 0 6px; }
-  .tbar, .gtbar, .ftbar, .ctbar { padding: 8px; flex-wrap: wrap; }
-  .tbar > .btn { padding: 5px 8px; font-size: 11px; }
-  .tw tbody td { padding: 8px 6px; } 
-  .cbody { padding: 8px; }
   .modal { width:95%; max-height:85dvh; margin:10px auto; }
   #total-badge { display:none; }
-}
-@media(max-width:480px){
-  .tabs { padding:0; }
-  .tab { padding:8px 10px; font-size:11px; } 
 }
 </style></head><body>
 
@@ -361,8 +350,10 @@ function doLogin() {
 // ── Firebase 防護升級版 ────────────────────────────────────────────────────────
 let db = null;
 const COL = 'workers';
+
 function docId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
 function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(tp==='err'?'err':tp==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(tp!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
+
 async function fbSave(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
 async function fbDel(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
 async function fbBatchReplace(list){
@@ -374,6 +365,7 @@ async function fbBatchReplace(list){
     showFbSt('✅ 已同步 '+list.length+' 筆');
   }catch(e){showFbSt('批次失敗','err');}
 }
+
 function showOfflineBtn(reason){
   document.querySelector('#fbl .msg').textContent='⚠️ Firebase 連線失敗';
   document.querySelector('#fbl .sub').textContent=reason||'請檢查網路狀態或關閉阻擋廣告擴充功能';
@@ -385,6 +377,7 @@ function showOfflineBtn(reason){
     document.getElementById('fbl').appendChild(b);
   }
 }
+
 async function loadFB(){
   const timer=setTimeout(()=>showOfflineBtn('連線逾時 — 網路異常或被瀏覽器阻擋'),4000);
   try{
@@ -405,12 +398,15 @@ async function loadFB(){
     clearTimeout(timer);showOfflineBtn(e.message||'連線失敗');
   }
 }
+// ── Data ──────────────────────────────────────────────────────────────────────
 let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
 const PAGE=50,sel=new Set();let editId=null,impBuf=[];
 let GDATA=[],FEE_DATA=[],FEE_W=[],MONTHS=[],TOTAL_DAYS=365;
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function rocToDate(s){if(!s)return null;const m=s.match(/(\d{2,3})[.\\/\-](\d{1,2})[.\\/\-](\d{1,2})/);if(!m)return null;try{return new Date(+m[1]+1911,+m[2]-1,+m[3]);}catch{return null;}}
 function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
+// ── Compute Dynamic ───────────────────────────────────────────────────────────
 function computeDynamic(){
   const today=new Date();today.setHours(0,0,0,0);
   GDATA=workers.filter(w=>w.work_limit).map((w,i)=>{
@@ -443,6 +439,7 @@ function updFeeUI(){
   document.getElementById('fee-avg').textContent='NT$'+(FEE_DATA.length?Math.round(gt/FEE_DATA.length):0).toLocaleString();
   document.getElementById('fee-total-foot').textContent='NT$'+gt.toLocaleString();
 }
+// ── Tabs / UI ─────────────────────────────────────────────────────────────────
 function switchTab(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -458,6 +455,7 @@ function updateStats(){
   document.getElementById('st-60').textContent=e60;document.getElementById('st-tk').textContent=tak;
   document.getElementById('total-badge').textContent='共 '+workers.length+' 筆';
 }
+// ── Filter / Table ────────────────────────────────────────────────────────────
 function filt(){
   const q=document.getElementById('q').value.toLowerCase(),nat=document.getElementById('f-nat').value,tak=document.getElementById('f-tak').value,lim=document.getElementById('f-lim').value;
   filtered=workers.filter(w=>{
@@ -503,6 +501,7 @@ function toggleRow(id,c){c?sel.add(id):sel.delete(id);updSel();renderTable();}
 function toggleAll(c){if(c)filtered.forEach(w=>sel.add(w.id));else sel.clear();['ck-all','ck-all2'].forEach(id=>document.getElementById(id).checked=c);renderTable();}
 function updSel(){const n=sel.size;document.getElementById('sel-info').textContent=n?'已選取'+n+'筆':'';document.getElementById('btn-del').style.display=n?'':'none';}
 function rowCk(e,id){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;openDP(id);}
+// ── Detail / Records ──────────────────────────────────────────────────────────
 const FIELDS=[['entry_date','入境日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
 function openDP(id){
   editId=id;const w=workers.find(x=>x.id===id);if(!w)return;if(!w.records)w.records=[];
@@ -517,12 +516,14 @@ function openDP(id){
 }
 function closeDP(){document.getElementById('dp').classList.remove('open');editId=null;}
 function saveDP(){const w=workers.find(x=>x.id===editId);if(!w)return;FIELDS.forEach(([k])=>{const el=document.getElementById('d_'+k);if(el)w[k]=el.value;});computeDynamic();filt();updateStats();fbSave(w);showToast('✅ 已儲存');closeDP();}
+ 
 function buildRec(w){
   const recs=w.records||[];const today=new Date().toLocaleDateString('zh-TW');
   const list=!recs.length?'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無紀錄</div>'
     :recs.map((r,i)=>'<div class="rec-item type-'+r.type+'"><div class="rec-meta"><span class="rec-date">'+r.date+'</span><span class="rec-type rec-type-'+r.type+'">'+r.type+'</span></div><div class="rec-content">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div><button class="rec-del" onclick="delRec('+w.id+','+i+')" title="刪除">✕</button></div>').join('');
   return'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1"><option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option></select><span style="font-size:11px;color:var(--m)">'+today+'</span></div><textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
 }
+
 function addRec(wid){
   const w=workers.find(x=>x.id===wid);if(!w)return;if(!w.records)w.records=[];
   const type=document.getElementById('rec-type').value,txt=document.getElementById('rec-txt').value.trim();
@@ -534,6 +535,7 @@ function addRec(wid){
   if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
 }
 function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');if(old)old.outerHTML=buildRec(w);showToast('🗑 紀錄已刪除');}
+ 
 function openBatch(){if(!sel.size){showToast('請先勾選移工');return;}
   document.getElementById('b-cnt').textContent=sel.size;
   document.getElementById('b-list').innerHTML=workers.filter(w=>sel.has(w.id)).map(w=>'<div>'+(w.name_en||w.name_zh)+' / '+w.employer+'</div>').join('');
