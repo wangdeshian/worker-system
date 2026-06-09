@@ -406,26 +406,43 @@ async function loadFB(){
 let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
 const PAGE=50,sel=new Set();let editId=null,impBuf=[];
 let GDATA=[],FEE_DATA=[],FEE_W=[],MONTHS=[],TOTAL_DAYS=365;
+let gRows=[],gScale=1,fCanvas=null,fCtx=null,fActiveM='';
+const HDR_H=44,ROW_H=34;
+const GC={expired:'#c0392b',urgent:'#e85c26',soon:'#c47d00',normal:'#1b8a4e'};
+const GL={expired:'已過期',urgent:'緊急',soon:'即將到期',normal:'正常'};
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function rocToDate(s){if(!s)return null;const m=s.match(/(\d{2,3})[.\\/\-](\d{1,2})[.\\/\-](\d{1,2})/);if(!m)return null;try{return new Date(+m[1]+1911,+m[2]-1,+m[3]);}catch{return null;}}
+function rocToDate(s){
+  if(!s)return null;
+  if(s instanceof Date&&!isNaN(s))return s;
+  const m=String(s).trim().match(/(\d{2,4})[.\\/\-](\d{1,2})[.\\/\-](\d{1,2})/);
+  if(!m)return null;
+  let y=+m[1],mo=+m[2],da=+m[3];if(y<1911)y+=1911;
+  if(mo<1||mo>12||da<1||da>31)return null;
+  const d=new Date(y,mo-1,da);
+  return d.getFullYear()===y&&d.getMonth()===mo-1&&d.getDate()===da?d:null;
+}
 function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
+function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 // ── Compute Dynamic ───────────────────────────────────────────────────────────
 function computeDynamic(){
   const today=new Date();today.setHours(0,0,0,0);
-  GDATA=workers.filter(w=>w.work_limit).map((w,i)=>{
-    const d=rocToDate(w.work_limit);const dl=d?Math.floor((d-today)/86400000):0;
+  const ganttSrc=workers.map((w,i)=>({w,i,d:rocToDate(w.work_limit)})).filter(x=>x.d);
+  GDATA=ganttSrc.map(({w,i,d})=>{
+    const dl=Math.floor((d-today)/86400000);
     return{seq:String(i+1),employer:w.employer||'',name:w.name_zh||w.name_en||'',
       work_limit_roc:w.work_limit||'',work_limit_ad:d?d.toISOString().slice(0,10):'',
       days_left:String(dl),status:dl<0?'已過期':dl<=180?'即將到期':'正常'};
   });
+  const maxG=ganttSrc.reduce((mx,x)=>x.d>mx?x.d:mx,today);
+  const gEnd=maxG>today?new Date(maxG.getFullYear(),maxG.getMonth()+2,1):new Date(today.getFullYear()+1,today.getMonth()+1,1);
+  TOTAL_DAYS=Math.max(365,Math.ceil((gEnd-today)/86400000));
+  MONTHS=[];let gm=new Date(today.getFullYear(),today.getMonth(),1);
+  while(gm<gEnd){MONTHS.push({label:gm.getFullYear()+'/'+(String(gm.getMonth()+1).padStart(2,'0')),offset:Math.floor((gm-today)/86400000),year:gm.getFullYear(),month:gm.getMonth()+1});gm=new Date(gm.getFullYear(),gm.getMonth()+1,1);}
   const vw=workers.filter(w=>{const ed=rocToDate(w.entry_date),wl=rocToDate(w.work_limit);return ed&&wl&&wl>today;});
-  if(!vw.length){FEE_DATA=[];FEE_W=[];MONTHS=[];TOTAL_DAYS=365;updFeeUI();return;}
+  if(!vw.length){FEE_DATA=[];FEE_W=[];fCanvas=null;updFeeUI();return;}
   const maxL=vw.reduce((mx,w)=>{const wl=rocToDate(w.work_limit);return wl>mx?wl:mx;},today);
   const endD=new Date(maxL.getFullYear(),maxL.getMonth()+2,1);
-  TOTAL_DAYS=Math.max(365,Math.ceil((endD-today)/86400000));
-  MONTHS=[];let md=new Date(today.getFullYear(),today.getMonth(),1);
-  while(md<endD){MONTHS.push({label:md.getFullYear()+'/'+(String(md.getMonth()+1).padStart(2,'0')),offset:Math.floor((md-today)/86400000),year:md.getFullYear(),month:md.getMonth()+1});md=new Date(md.getFullYear(),md.getMonth()+1,1);}
   FEE_DATA=[];let cur=new Date(today.getFullYear(),today.getMonth(),1);
   while(cur<endD){
     const nxt=new Date(cur.getFullYear(),cur.getMonth()+1,1);const me=new Date(nxt-1);
@@ -490,6 +507,15 @@ function renderTable(){
       '<td onclick="event.stopPropagation()"><button class="btn btn-sm btn-o" onclick="openDP('+w.id+')">'+rc+'編輯</button></td></tr>';
   }).join('');renderPag();updSel();
 }
+function renderTableKeepPosition(){
+  const tw=document.querySelector('#page-list .tw'),dpb=document.getElementById('dp-body');
+  const top=tw?tw.scrollTop:0,left=tw?tw.scrollLeft:0,dpTop=dpb?dpb.scrollTop:0,oldPg=pg;
+  pg=oldPg;renderTable();
+  requestAnimationFrame(()=>{
+    if(tw){tw.scrollTop=top;tw.scrollLeft=left;}
+    if(dpb)dpb.scrollTop=dpTop;
+  });
+}
 function renderPag(){
   const total=filtered.length,pages=Math.ceil(total/PAGE)||1;const s=Math.max(1,pg-2),e=Math.min(pages,pg+2);
   let h='<button class="pg" onclick="goP('+(pg-1)+')" '+(pg<=1?'disabled':'')+'>‹</button>';
@@ -532,10 +558,12 @@ function addRec(wid){
   const w=workers.find(x=>x.id===wid);if(!w)return;if(!w.records)w.records=[];
   const type=document.getElementById('rec-type').value,txt=document.getElementById('rec-txt').value.trim();
   if(!txt){showToast('請輸入紀錄內容');return;}
+  const dpb=document.getElementById('dp-body'),dpTop=dpb?dpb.scrollTop:0;
   const now=new Date();w.records.unshift({date:now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),type,content:txt});
   const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');
   if(old)old.outerHTML=buildRec(w);else body.innerHTML+=buildRec(w);
-  fbSave(w);showToast('✅ 客服紀錄已新增');renderTable();
+  if(dpb)requestAnimationFrame(()=>{dpb.scrollTop=dpTop;});
+  fbSave(w);showToast('✅ 客服紀錄已新增');renderTableKeepPosition();
   if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
 }
 function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');if(old)old.outerHTML=buildRec(w);showToast('🗑 紀錄已刪除');}
@@ -618,7 +646,13 @@ function dlCSV(c,n){const a=document.createElement('a');a.href=URL.createObjectU
 function isoDate(){return new Date().toISOString().slice(0,10);}
 function cov(id){document.getElementById(id).classList.remove('open');}
 function buildGantt(){
-  if(!GDATA.length){document.getElementById('glbody').innerHTML='';document.getElementById('gcnt').textContent='尚無資料';return;}
+  if(!GDATA.length){
+    document.getElementById('glbody').innerHTML='';
+    document.getElementById('gcnt').textContent='尚無可計算的工作期限';
+    const cv=document.getElementById('gcv');cv.width=0;cv.height=0;cv.style.width='0';cv.style.height='0';
+    return;
+  }
+  if(!MONTHS.length)computeDynamic();
   const q=(document.getElementById('gq').value||'').toLowerCase(),fs=document.getElementById('gf').value,sort=document.getElementById('gs').value;
   let data=GDATA.map(r=>{const d=parseInt(r.days_left)||0;return{...r,di:d,cls:gcls(d)};});
   if(q)data=data.filter(r=>r.name.toLowerCase().includes(q)||r.employer.toLowerCase().includes(q));
