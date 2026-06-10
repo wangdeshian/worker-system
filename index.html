@@ -380,6 +380,7 @@ function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.inner
 
 async function fbSave(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
 async function fbDel(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
+async function fbDelInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
 async function fbBatchReplace(list){
   if(!db)return;
   showFbSt('上傳中…','sync');
@@ -459,13 +460,18 @@ function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function normId(v){return String(v||'').trim().toUpperCase().replace(/[\s\-_.]/g,'');}
 function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
+function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-_.()（）/／]/g,'');}
+function workerNameKey(w){return normText(w.name_zh)||normText(w.name_en)||'';}
+function workerEmployerKey(w){return normText(w.employer||w.last_employer)||'';}
+function workerFallbackKey(w){const n=workerNameKey(w),e=workerEmployerKey(w);return n&&e?n+'|'+e:'';}
+function sameWorker(a,b){const ak=workerKey(a),bk=workerKey(b);if(ak&&bk&&ak===bk)return true;const af=workerFallbackKey(a),bf=workerFallbackKey(b);return !!af&&af===bf;}
 function recOptions(){return'<option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option>';}
-function mergeInactiveAfterImport(oldInactive, removedList, activeKeys){
+function mergeInactiveAfterImport(oldInactive, removedList, activeKeys, activeFallbackKeys){
   const now=new Date().toLocaleDateString('zh-TW')+' '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   const map=new Map();
-  oldInactive.forEach(w=>{const k=workerKey(w);if(k&&activeKeys.has(k))return;map.set(k||('id_'+w.id),w);});
+  oldInactive.forEach(w=>{const k=workerKey(w),fk=workerFallbackKey(w);if((k&&activeKeys.has(k))||(fk&&activeFallbackKeys.has(fk)))return;map.set(k||fk||('id_'+w.id),w);});
   removedList.forEach((w,i)=>{
-    const k=workerKey(w)||('removed_'+Date.now()+'_'+i),prev=map.get(k)||{};
+    const k=workerKey(w)||workerFallbackKey(w)||('removed_'+Date.now()+'_'+i),prev=map.get(k)||{};
     map.set(k,{...prev,...w,id:prev.id||w.id||Date.now()+i+Math.random(),records:(w.records&&w.records.length?w.records:prev.records)||[],inactive_first_at:prev.inactive_first_at||now,inactive_at:now,inactive_reason:'新表單未出現（智慧刪除）',last_employer:w.employer||prev.last_employer||''});
   });
   return [...map.values()];
@@ -670,27 +676,31 @@ function confirmImport(){
   const uMap = new Map();
   const uNoKey = [];
   impBuf.forEach(imp => { const k = gk(imp); if(k) uMap.set(k, imp); else uNoKey.push(imp); });
+  const incomingRows = [...uMap.values(), ...uNoKey];
   const nk = new Set(uMap.keys());
+  const fkSet = new Set(incomingRows.map(workerFallbackKey).filter(Boolean));
   let added=0, updated=0, removed=0;
   const merged = [];
-  [...uMap.values(), ...uNoKey].forEach((imp, i) => {
+  incomingRows.forEach((imp, i) => {
     const k = gk(imp);
-    const ex = activeOld.find(w => k && gk(w)===k);
-    const oldInactive = inactiveWorkers.find(w => k && gk(w)===k);
+    const ex = activeOld.find(w => sameWorker(imp,w));
+    const oldInactive = inactiveWorkers.find(w => sameWorker(imp,w));
     if(ex){ merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++; }
     else if(oldInactive){ merged.push({...imp, id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
   const mergedIds = new Set(merged.map(w=>w.id));
   const missingOld = activeOld.filter(w => {
-    const k=gk(w);
-    return k ? !nk.has(k) : !mergedIds.has(w.id);
+    const k=gk(w),fk=workerFallbackKey(w);
+    if(k&&nk.has(k))return false;
+    if(fk&&fkSet.has(fk))return false;
+    return k||fk?!mergedIds.has(w.id):!mergedIds.has(w.id);
   });
-  const keepActive = missingOld.filter(w => !gk(w));
+  const keepActive = missingOld.filter(w => !gk(w)&&!workerFallbackKey(w));
   keepActive.forEach(w => { if(!merged.some(x=>x.id===w.id))merged.push(w); });
-  const removedList = missingOld.filter(w => gk(w));
+  const removedList = missingOld.filter(w => gk(w)||workerFallbackKey(w));
   removed = removedList.length;
-  inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, nk);
+  inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, nk, fkSet);
   lastInactiveBatchCount = removed;
   workers = merged;
   cov('ov-import'); computeDynamic(); filt(); updateStats();
@@ -839,7 +849,7 @@ function renderInactive(){
     const recsHtml=recs.length?recs.map(r=>'<div class="crr type-'+esc(r.type)+'"><div class="cri"><span class="d">'+esc(r.date)+'</span><span class="crt">'+esc(r.type||'其他')+'</span></div><div class="crc">'+esc(r.content).replace(/\n/g,'<br>')+'</div></div>').join(''):'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無追蹤紀錄</div>';
     return'<div class="ccard"><div class="cchdr" onclick="togInactive('+i+')"><span class="tico" id="ii-'+i+'">▶</span>'+
       '<div class="cwinfo"><div class="cwname">'+esc(name||'未命名')+'</div><div class="cwmeta">原雇主 '+esc(emp)+' · 移入追蹤 '+esc(w.inactive_at||'-')+'</div></div>'+
-      '<div class="cbadge"><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+esc(w.inactive_reason||'新表單未出現')+'</span></div>'+
+      '<div class="cbadge"><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+esc(w.inactive_reason||'新表單未出現')+'</span><button class="btn btn-o btn-sm" onclick="event.stopPropagation();restoreInactive('+i+')">↩ 恢復在台</button></div>'+
       '</div><div class="ccbody" id="ib-'+i+'"><div class="track-note">此名單由智慧匯入自動建立：新上傳表單沒有出現的人，會從在台名單移出並保留在這裡追蹤。</div>'+
       '<div class="track-grid"><div class="track-field"><div class="k">原雇主</div><div class="v">'+esc(emp)+'</div></div><div class="track-field"><div class="k">國籍</div><div class="v">'+esc(w.nationality||'-')+'</div></div><div class="track-field"><div class="k">工作期限</div><div class="v">'+esc(w.work_limit||'-')+'</div></div><div class="track-field"><div class="k">護照號碼</div><div class="v">'+esc(w.passport||'-')+'</div></div><div class="track-field"><div class="k">居留證號</div><div class="v">'+esc(w.resident_id||'-')+'</div></div><div class="track-field"><div class="k">業務員</div><div class="v">'+esc(w.salesman||'-')+'</div></div></div>'+
       recsHtml+'<div class="rec-add"><div class="rec-add-row"><select id="ina-type-'+i+'" style="flex:1">'+recOptions()+'</select><span style="font-size:11px;color:var(--m)">'+new Date().toLocaleDateString('zh-TW')+'</span></div><textarea id="ina-txt-'+i+'" placeholder="輸入未聘僱追蹤紀錄…"></textarea><button class="btn btn-p btn-sm" onclick="addInactiveRec('+i+')" style="align-self:flex-end">＋ 新增追蹤紀錄</button></div></div></div>';
@@ -852,6 +862,22 @@ function addInactiveRec(i){
   if(!txt){showToast('請輸入追蹤紀錄內容');return;}
   const now=new Date();w.records.unshift({date:now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),type,content:txt});
   fbSaveInactive(w);showToast('✅ 追蹤紀錄已新增');renderInactive();requestAnimationFrame(()=>togInactive(i));
+}
+function restoreInactive(i){
+  const w=inactiveWorkers[i];if(!w)return;
+  const restored={...w,employer:w.employer||w.last_employer||'',records:w.records||[]};
+  delete restored.inactive_at;delete restored.inactive_first_at;delete restored.inactive_reason;delete restored.last_employer;
+  const ex=workers.find(x=>sameWorker(restored,x));
+  if(ex){
+    const seen=new Set((ex.records||[]).map(r=>(r.date||'')+'|'+(r.type||'')+'|'+(r.content||'')));
+    (restored.records||[]).forEach(r=>{const key=(r.date||'')+'|'+(r.type||'')+'|'+(r.content||'');if(!seen.has(key)){(ex.records||(ex.records=[])).push(r);seen.add(key);}});
+    Object.assign(ex,{...restored,id:ex.id,records:ex.records||[]});
+    fbSave(ex);
+  }else{
+    workers.push(restored);fbSave(restored);
+  }
+  inactiveWorkers.splice(i,1);fbDelInactive(w);fbBatchReplaceInactive(inactiveWorkers);
+  computeDynamic();filt();updateStats();renderInactive();showToast('✅ 已恢復到在台名單');
 }
 function exportInactiveCSV(){
   const rows=['移入追蹤日期,原雇主,英文姓名,中文名,國籍,護照號碼,居留證號,工作期限,業務員,追蹤紀錄數'];
