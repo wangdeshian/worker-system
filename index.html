@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -119,6 +121,10 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .crt{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;display:inline-block}.crc{font-size:13px;line-height:1.7;word-break:break-word;white-space:pre-wrap;color:#1e2330;margin-top:2px}
 .cgo{font-size:11px;color:var(--p);cursor:pointer;white-space:nowrap;text-decoration:underline;flex-shrink:0}.cgo:hover{color:#154d8c}
 .tico{font-size:12px;color:var(--m);flex-shrink:0}.cempty{text-align:center;padding:60px 20px;color:var(--m);font-size:14px}
+.track-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.track-field{background:#fff;border:1px solid var(--b);border-radius:7px;padding:8px 10px}
+.track-field .k{font-size:10px;color:var(--m);font-weight:700;margin-bottom:3px}.track-field .v{font-size:12px;color:var(--t);word-break:break-word}
+.track-note{font-size:12px;color:var(--m);line-height:1.6;margin-bottom:8px}
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}.ov.open{display:flex}
 .modal{background:#fff;border-radius:10px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .mhdr{padding:14px 17px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center}.mhdr h3{font-size:14px;font-weight:700}.mbody{padding:17px}
@@ -204,6 +210,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   <div class="tab" onclick="switchTab('gantt',this)">📊 甘特圖</div>
   <div class="tab" onclick="switchTab('fee',this)">💰 服務費試算</div>
   <div class="tab" onclick="switchTab('crm',this)">📌 服務紀錄追蹤</div>
+  <div class="tab" onclick="switchTab('inactive',this)">🚫 已無聘僱追蹤</div>
 </div>
 <div class="page active" id="page-list">
   <div class="sb" id="sidebar">
@@ -307,6 +314,20 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   </div>
   <div class="cbody" id="cbody"><div class="cempty">尚無服務紀錄</div></div>
 </div></div>
+<div class="page" id="page-inactive"><div class="cpage">
+  <div class="csum">
+    <div class="cst cs-total"><div class="n" id="ina-total">0</div><div class="l">追蹤人數</div></div>
+    <div class="cst cs-其他"><div class="n" id="ina-emps">0</div><div class="l">雇主數</div></div>
+    <div class="cst cs-問題"><div class="n" id="ina-last">0</div><div class="l">本次移入</div></div>
+    <div style="margin-left:auto"><button class="btn btn-o btn-sm" onclick="exportInactiveCSV()">📤 匯出追蹤</button></div>
+  </div>
+  <div class="ctbar">
+    <input type="text" id="iq" placeholder="🔍 搜尋姓名／雇主／證號" oninput="renderInactive()" style="width:230px">
+    <select id="isrt" onchange="renderInactive()"><option value="date">移入日期新到舊</option><option value="employer">雇主排序</option><option value="name">姓名排序</option><option value="records">紀錄最多優先</option></select>
+    <span id="icnt" style="font-size:11px;color:var(--m)"></span>
+  </div>
+  <div class="cbody" id="ibody"><div class="cempty">尚無已無聘僱追蹤資料</div></div>
+</div></div>
 <div class="ov" id="ov-batch"><div class="modal">
   <div class="mhdr"><h3>✏️ 批次更新</h3><button class="xbtn" onclick="cov('ov-batch')">×</button></div>
   <div class="mbody"><p style="font-size:12px;color:var(--m);margin-bottom:11px">已選取 <strong id="b-cnt">0</strong> 筆（留空不更新）：</p>
@@ -354,6 +375,7 @@ function doLogin() {
 // ── Firebase 防護升級版 ────────────────────────────────────────────────────────
 let db = null;
 const COL = 'workers';
+const INACTIVE_COL = 'inactive_workers';
 
 function docId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
 function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(tp==='err'?'err':tp==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(tp!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
@@ -368,6 +390,14 @@ async function fbBatchReplace(list){
     for(let i=0;i<list.length;i+=400){const b2=db.batch();list.slice(i,i+400).forEach(w=>b2.set(db.collection(COL).doc(docId(w)),w));await b2.commit();}
     showFbSt('✅ 已同步 '+list.length+' 筆');
   }catch(e){showFbSt('批次失敗','err');}
+}
+async function fbSaveInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(docId(w)).set(w);showFbSt('追蹤已同步');}catch(e){showFbSt('追蹤同步失敗','err');}}
+async function fbBatchReplaceInactive(list){
+  if(!db)return;
+  try{
+    const snap=await db.collection(INACTIVE_COL).get();const b=db.batch();snap.docs.forEach(d=>b.delete(d.ref));await b.commit();
+    for(let i=0;i<list.length;i+=400){const b2=db.batch();list.slice(i,i+400).forEach(w=>b2.set(db.collection(INACTIVE_COL).doc(docId(w)),w));await b2.commit();}
+  }catch(e){showFbSt('追蹤同步失敗','err');}
 }
 
 function showOfflineBtn(reason){
@@ -391,8 +421,11 @@ async function loadFB(){
     }
     db = firebase.firestore();
     const snap=await db.collection(COL).get();
+    let inactiveDocs=[];
+    try{const inactiveSnap=await db.collection(INACTIVE_COL).get();inactiveDocs=inactiveSnap.docs.map(d=>d.data());}catch(e){inactiveDocs=[];}
     clearTimeout(timer);
     workers=snap.empty?[]:snap.docs.map(d=>d.data());
+    inactiveWorkers=inactiveDocs;
     document.getElementById('fb-ind').innerHTML='🟢 Firebase 已連線';
     document.getElementById('fb-ind').style.background='rgba(74,222,128,.25)';
     document.getElementById('fbl').style.display='none';
@@ -405,6 +438,7 @@ async function loadFB(){
 // ── Data ──────────────────────────────────────────────────────────────────────
 let workers=[],filtered=[],sortCol='entry_date',sortDir=1,pg=1;
 const PAGE=50,sel=new Set();let editId=null,impBuf=[];
+let inactiveWorkers=[],lastInactiveBatchCount=0;
 let GDATA=[],FEE_DATA=[],FEE_W=[],MONTHS=[],TOTAL_DAYS=365;
 let gRows=[],gScale=1,fCanvas=null,fCtx=null,fActiveM='';
 const HDR_H=44,ROW_H=34;
@@ -424,6 +458,19 @@ function rocToDate(s){
 function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
 function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function workerKey(w){return(w.resident_id||w.passport||'').trim();}
+function recOptions(){return'<option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option>';}
+function mergeInactiveAfterImport(oldInactive, removedList, activeKeys){
+  const now=new Date().toLocaleDateString('zh-TW')+' '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  const map=new Map();
+  oldInactive.forEach(w=>{const k=workerKey(w);if(k&&activeKeys.has(k))return;map.set(k||('id_'+w.id),w);});
+  removedList.forEach((w,i)=>{
+    const k=workerKey(w)||('removed_'+Date.now()+'_'+i),prev=map.get(k)||{};
+    map.set(k,{...prev,...w,id:prev.id||w.id||Date.now()+i+Math.random(),records:(w.records&&w.records.length?w.records:prev.records)||[],inactive_first_at:prev.inactive_first_at||now,inactive_at:now,inactive_reason:'新表單未出現（智慧刪除）',last_employer:w.employer||prev.last_employer||''});
+  });
+  return [...map.values()];
+}
 // ── Compute Dynamic ───────────────────────────────────────────────────────────
 function computeDynamic(){
   const today=new Date();today.setHours(0,0,0,0);
@@ -468,6 +515,7 @@ function switchTab(name,el){
   if(name==='gantt')requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(buildGantt,30)));
   if(name==='fee')setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(initFee)),30);
   if(name==='crm')setTimeout(renderCRM,30);
+  if(name==='inactive')setTimeout(renderInactive,30);
 }
 function toggleSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sb-ov').classList.toggle('open');}
 function updateStats(){
@@ -619,6 +667,7 @@ function showImpPrev(name){
   document.getElementById('btn-ci').style.display='';}
 function confirmImport(){
   const gk = w => (w.resident_id || w.passport || '').trim();
+  const activeOld = workers.slice();
   const uMap = new Map();
   const uNoKey = [];
   impBuf.forEach(imp => { const k = gk(imp); if(k) uMap.set(k, imp); else uNoKey.push(imp); });
@@ -627,15 +676,22 @@ function confirmImport(){
   const merged = [];
   [...uMap.values(), ...uNoKey].forEach((imp, i) => {
     const k = gk(imp);
-    const ex = workers.find(w => k && gk(w)===k);
+    const ex = activeOld.find(w => k && gk(w)===k);
+    const oldInactive = inactiveWorkers.find(w => k && gk(w)===k);
     if(ex){ merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++; }
+    else if(oldInactive){ merged.push({...imp, id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
-  removed = workers.filter(w => { const k=gk(w); return k && !nk.has(k); }).length;
+  const removedList = activeOld.filter(w => { const k=gk(w); return k && !nk.has(k); });
+  removed = removedList.length;
+  inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, nk);
+  lastInactiveBatchCount = removed;
   workers = merged;
   cov('ov-import'); computeDynamic(); filt(); updateStats();
-  showToast('✅ 新增'+added+'、更新'+updated+'、移除'+removed+'筆 (已過濾重複)');
+  if(document.getElementById('page-inactive').classList.contains('active'))renderInactive();
+  showToast('✅ 新增'+added+'、更新'+updated+'、移入未聘僱追蹤'+removed+'筆');
   fbBatchReplace(workers);
+  fbBatchReplaceInactive(inactiveWorkers);
 }
 function exportCSV(){
   const H=['入境日','離境日','雇主','工號','英文姓名','中文名','性別','國籍','護照號碼','護照到期','工作期限','離管狀態','聘可文號','居留證號','任用來源','接管代碼','業務員'];
@@ -758,6 +814,44 @@ function renderFeeTable(){
 function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftbl tbody tr').forEach(tr=>tr.classList.toggle('fa',tr.dataset.m===m));const d=FEE_DATA.find(x=>x.month===m);if(d){showDrill(d);document.getElementById('f-c1').textContent=d.cnt_1800;document.getElementById('f-c2').textContent=d.cnt_1700;document.getElementById('f-c3').textContent=d.cnt_1500;}}
 function exportFeeCSV(){dlCSV('﻿月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function renderInactive(){
+  const q=(document.getElementById('iq').value||'').toLowerCase(),sort=document.getElementById('isrt').value;
+  let rows=inactiveWorkers.map((w,i)=>({w,i}));
+  if(q)rows=rows.filter(({w})=>[w.name_en,w.name_zh,w.employer,w.last_employer,w.passport,w.resident_id,w.permit_no,w.salesman].some(v=>(v||'').toLowerCase().includes(q)));
+  if(sort==='employer')rows.sort((a,b)=>((a.w.last_employer||a.w.employer||'').localeCompare((b.w.last_employer||b.w.employer||''),'zh-TW')));
+  else if(sort==='name')rows.sort((a,b)=>((a.w.name_en||a.w.name_zh||'').localeCompare((b.w.name_en||b.w.name_zh||''),'zh-TW')));
+  else if(sort==='records')rows.sort((a,b)=>(b.w.records||[]).length-(a.w.records||[]).length);
+  else rows.sort((a,b)=>(b.w.inactive_at||'').localeCompare(a.w.inactive_at||''));
+  document.getElementById('ina-total').textContent=inactiveWorkers.length;
+  document.getElementById('ina-emps').textContent=new Set(inactiveWorkers.map(w=>w.last_employer||w.employer||'').filter(Boolean)).size;
+  document.getElementById('ina-last').textContent=lastInactiveBatchCount;
+  document.getElementById('icnt').textContent='顯示'+rows.length+'人';
+  const body=document.getElementById('ibody');
+  if(!rows.length){body.innerHTML='<div class="cempty">'+(q?'沒有符合條件的已無聘僱資料':'尚無已無聘僱追蹤資料<br><span style="font-size:12px">智慧匯入時，新表單未出現的人會自動移入這裡</span>')+'</div>';return;}
+  body.innerHTML=rows.map(({w,i})=>{
+    const emp=w.last_employer||w.employer||'-',name=(w.name_en||'')+(w.name_zh?' / '+w.name_zh:''),recs=w.records||[];
+    const recsHtml=recs.length?recs.map(r=>'<div class="crr type-'+esc(r.type)+'"><div class="cri"><span class="d">'+esc(r.date)+'</span><span class="crt">'+esc(r.type||'其他')+'</span></div><div class="crc">'+esc(r.content).replace(/\n/g,'<br>')+'</div></div>').join(''):'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無追蹤紀錄</div>';
+    return'<div class="ccard"><div class="cchdr" onclick="togInactive('+i+')"><span class="tico" id="ii-'+i+'">▶</span>'+
+      '<div class="cwinfo"><div class="cwname">'+esc(name||'未命名')+'</div><div class="cwmeta">原雇主 '+esc(emp)+' · 移入追蹤 '+esc(w.inactive_at||'-')+'</div></div>'+
+      '<div class="cbadge"><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+esc(w.inactive_reason||'新表單未出現')+'</span></div>'+
+      '</div><div class="ccbody" id="ib-'+i+'"><div class="track-note">此名單由智慧匯入自動建立：新上傳表單沒有出現的人，會從在台名單移出並保留在這裡追蹤。</div>'+
+      '<div class="track-grid"><div class="track-field"><div class="k">原雇主</div><div class="v">'+esc(emp)+'</div></div><div class="track-field"><div class="k">國籍</div><div class="v">'+esc(w.nationality||'-')+'</div></div><div class="track-field"><div class="k">工作期限</div><div class="v">'+esc(w.work_limit||'-')+'</div></div><div class="track-field"><div class="k">護照號碼</div><div class="v">'+esc(w.passport||'-')+'</div></div><div class="track-field"><div class="k">居留證號</div><div class="v">'+esc(w.resident_id||'-')+'</div></div><div class="track-field"><div class="k">業務員</div><div class="v">'+esc(w.salesman||'-')+'</div></div></div>'+
+      recsHtml+'<div class="rec-add"><div class="rec-add-row"><select id="ina-type-'+i+'" style="flex:1">'+recOptions()+'</select><span style="font-size:11px;color:var(--m)">'+new Date().toLocaleDateString('zh-TW')+'</span></div><textarea id="ina-txt-'+i+'" placeholder="輸入未聘僱追蹤紀錄…"></textarea><button class="btn btn-p btn-sm" onclick="addInactiveRec('+i+')" style="align-self:flex-end">＋ 新增追蹤紀錄</button></div></div></div>';
+  }).join('');
+}
+function togInactive(i){const b=document.getElementById('ib-'+i),ic=document.getElementById('ii-'+i);if(!b||!ic)return;ic.textContent=b.classList.toggle('open')?'▼':'▶';}
+function addInactiveRec(i){
+  const w=inactiveWorkers[i];if(!w)return;if(!w.records)w.records=[];
+  const type=document.getElementById('ina-type-'+i).value,txt=document.getElementById('ina-txt-'+i).value.trim();
+  if(!txt){showToast('請輸入追蹤紀錄內容');return;}
+  const now=new Date();w.records.unshift({date:now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),type,content:txt});
+  fbSaveInactive(w);showToast('✅ 追蹤紀錄已新增');renderInactive();requestAnimationFrame(()=>togInactive(i));
+}
+function exportInactiveCSV(){
+  const rows=['移入追蹤日期,原雇主,英文姓名,中文名,國籍,護照號碼,居留證號,工作期限,業務員,追蹤紀錄數'];
+  inactiveWorkers.forEach(w=>rows.push([w.inactive_at||'',w.last_employer||w.employer||'',w.name_en||'',w.name_zh||'',w.nationality||'',w.passport||'',w.resident_id||'',w.work_limit||'',w.salesman||'',(w.records||[]).length].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')));
+  dlCSV('\uFEFF'+rows.join('\n'),'inactive_workers_'+isoDate()+'.csv');showToast('📤 已無聘僱追蹤已匯出');
+}
 function renderCRM(){
   const q=(document.getElementById('cq').value||'').toLowerCase(),ft=document.getElementById('cf').value,sort=document.getElementById('csrt').value;
   let wr=workers.filter(w=>w.records&&w.records.length);
