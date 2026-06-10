@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -457,7 +459,8 @@ function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
 function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function workerKey(w){return(w.resident_id||w.passport||'').trim();}
+function normId(v){return String(v||'').trim().toUpperCase().replace(/[\s\-_.]/g,'');}
+function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
 function recOptions(){return'<option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option>';}
 function mergeInactiveAfterImport(oldInactive, removedList, activeKeys){
   const now=new Date().toLocaleDateString('zh-TW')+' '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
@@ -664,7 +667,7 @@ function showImpPrev(name){
   document.getElementById('imp-prev').innerHTML='<p style="font-size:12px;margin-bottom:7px">📄 <strong>'+name+'</strong>｜解析到 <strong>'+impBuf.length+' 筆</strong></p><div class="sl">'+impBuf.slice(0,8).map(w=>'<div>'+(w.name_en||w.name_zh)+' / '+w.employer+'</div>').join('')+(impBuf.length>8?'<div>…及其他'+(impBuf.length-8)+'筆</div>':'')+'</div>';
   document.getElementById('btn-ci').style.display='';}
 function confirmImport(){
-  const gk = w => (w.resident_id || w.passport || '').trim();
+  const gk = workerKey;
   const activeOld = workers.slice();
   const uMap = new Map();
   const uNoKey = [];
@@ -680,7 +683,14 @@ function confirmImport(){
     else if(oldInactive){ merged.push({...imp, id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
-  const removedList = activeOld.filter(w => { const k=gk(w); return k && !nk.has(k); });
+  const mergedIds = new Set(merged.map(w=>w.id));
+  const missingOld = activeOld.filter(w => {
+    const k=gk(w);
+    return k ? !nk.has(k) : !mergedIds.has(w.id);
+  });
+  const keepActive = missingOld.filter(w => !gk(w));
+  keepActive.forEach(w => { if(!merged.some(x=>x.id===w.id))merged.push(w); });
+  const removedList = missingOld.filter(w => gk(w));
   removed = removedList.length;
   inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, nk);
   lastInactiveBatchCount = removed;
