@@ -355,6 +355,18 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   </div>
   <div class="mftr"><button class="btn btn-o" onclick="cov('ov-import')">取消</button><button class="btn btn-s" id="btn-ci" onclick="confirmImport()" style="display:none">✅ 確認智慧匯入</button></div>
 </div></div>
+<div class="ov" id="ov-inactive-confirm"><div class="modal" style="max-width:560px">
+  <div class="mhdr"><h3>⚠️ 確認移入已無聘僱追蹤</h3></div>
+  <div class="mbdy">
+    <p style="margin-bottom:10px;color:var(--g1)">以下 <strong id="inactive-confirm-count">0</strong> 位移工在新上傳的名單中<strong>未出現</strong>，系統即將移入「已無聘僱追蹤」。</p>
+    <p style="margin-bottom:10px;font-size:12px;color:var(--g2)">若他們仍在聘僱中（例如報表篩選條件不同），請按「保留在台名單」。</p>
+    <div id="inactive-confirm-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;font-size:13px"></div>
+  </div>
+  <div class="mftr" style="gap:8px">
+    <button class="btn btn-o" id="btn-cancel-inactive">✋ 保留在台名單</button>
+    <button class="btn btn-s" id="btn-confirm-inactive">➡️ 確認移入追蹤</button>
+  </div>
+</div></div>
 <div class="g-tip" id="g-tip"></div><div class="toast" id="toast"></div>
 <script>
 // ── 登入驗證邏輯 ──────────────────────────────────────────────────────────────
@@ -458,7 +470,7 @@ function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
 function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function normId(v){return String(v||'').trim().toUpperCase().replace(/[\s\-_.]/g,'');}
+function normId(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}}
 function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
 function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-_.()（）/／]/g,'');}
 function workerNameKey(w){return normText(w.name_zh)||normText(w.name_en)||'';}
@@ -679,10 +691,9 @@ function confirmImport(){
   const incomingRows = [...uMap.values(), ...uNoKey];
   const nk = new Set(uMap.keys());
   const fkSet = new Set(incomingRows.map(workerFallbackKey).filter(Boolean));
-  let added=0, updated=0, removed=0;
+  let added=0, updated=0;
   const merged = [];
   incomingRows.forEach((imp, i) => {
-    const k = gk(imp);
     const ex = activeOld.find(w => sameWorker(imp,w));
     const oldInactive = inactiveWorkers.find(w => sameWorker(imp,w));
     if(ex){ merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++; }
@@ -690,16 +701,36 @@ function confirmImport(){
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
   const mergedIds = new Set(merged.map(w=>w.id));
-  const missingOld = activeOld.filter(w => {
-    const k=gk(w),fk=workerFallbackKey(w);
-    if(k&&nk.has(k))return false;
-    if(fk&&fkSet.has(fk))return false;
-    return k||fk?!mergedIds.has(w.id):!mergedIds.has(w.id);
-  });
+  const missingOld = activeOld.filter(w => !mergedIds.has(w.id) && !incomingRows.some(imp => sameWorker(imp,w)));
   const keepActive = missingOld.filter(w => !gk(w)&&!workerFallbackKey(w));
   keepActive.forEach(w => { if(!merged.some(x=>x.id===w.id))merged.push(w); });
   const removedList = missingOld.filter(w => gk(w)||workerFallbackKey(w));
-  removed = removedList.length;
+  if(removedList.length > 0){
+    showInactiveConfirm(removedList, merged, nk, fkSet, added, updated);
+    return;
+  }
+  execImport(merged, [], nk, fkSet, added, updated, 0);
+}
+function showInactiveConfirm(removedList, merged, nk, fkSet, added, updated){
+  document.getElementById('inactive-confirm-list').innerHTML = removedList.map(w =>
+    '<div style="padding:5px 0;border-bottom:1px solid var(--bdr);display:flex;gap:8px;align-items:center">'+
+    '<span style="font-weight:600;min-width:160px">'+(w.name_en||w.name_zh||'(未知)')+'</span>'+
+    '<span style="color:var(--g2);flex:1">'+(w.employer||'')+'</span>'+
+    '<span style="font-family:monospace;font-size:11px;color:#999">'+(w.resident_id||w.passport||'')+'</span></div>'
+  ).join('');
+  document.getElementById('inactive-confirm-count').textContent = removedList.length;
+  document.getElementById('btn-confirm-inactive').onclick = ()=>{
+    document.getElementById('ov-inactive-confirm').classList.remove('open');
+    execImport(merged, removedList, nk, fkSet, added, updated, removedList.length);
+  };
+  document.getElementById('btn-cancel-inactive').onclick = ()=>{
+    document.getElementById('ov-inactive-confirm').classList.remove('open');
+    removedList.forEach(w=>{ if(!merged.some(x=>x.id===w.id)) merged.push(w); });
+    execImport(merged, [], nk, fkSet, added, updated, 0);
+  };
+  document.getElementById('ov-inactive-confirm').classList.add('open');
+}
+function execImport(merged, removedList, nk, fkSet, added, updated, removed){
   inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, nk, fkSet);
   lastInactiveBatchCount = removed;
   workers = merged;
@@ -709,6 +740,7 @@ function confirmImport(){
   fbBatchReplace(workers);
   fbBatchReplaceInactive(inactiveWorkers);
 }
+
 function exportCSV(){
   const H=['入境日','離境日','雇主','工號','英文姓名','中文名','性別','國籍','護照號碼','護照到期','工作期限','離管狀態','聘可文號','居留證號','任用來源','接管代碼','業務員'];
   const K=['entry_date','exit_date','employer','worker_id','name_en','name_zh','gender','nationality','passport','passport_exp','work_limit','status','permit_no','resident_id','source','takeover_code','salesman'];
