@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -184,8 +186,8 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
   <div class="log-box">
     <h2>聯捷人力 系統登入</h2>
     <div id="log-err" class="log-err">⚠️ 帳號或密碼錯誤</div>
-    <input type="text" id="log-acc" placeholder="輸入帳號 ">
-    <input type="password" id="log-pwd" placeholder="輸入密碼 " onkeypress="if(event.key==='Enter')doLogin()">
+    <input type="text" id="log-acc" placeholder="輸入帳號" autocomplete="username">
+    <input type="password" id="log-pwd" placeholder="輸入密碼" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">登 入</button>
   </div>
 </div>
@@ -371,14 +373,18 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 <script>
 // ── 登入驗證邏輯 ──────────────────────────────────────────────────────────────
 function doLogin() {
-  const acc = document.getElementById('log-acc').value;
-  const pwd = document.getElementById('log-pwd').value;
+  const acc = (document.getElementById('log-acc').value || '').trim();
+  const pwd = (document.getElementById('log-pwd').value || '').trim();
+  const err = document.getElementById('log-err');
   if(acc === 'admin' && pwd === '123456') {
+    err.style.display = 'none';
     document.getElementById('login-scr').style.display = 'none';
-    document.getElementById('fbl').style.display = 'flex';
+    document.getElementById('fbl').style.display = 'none';
+    computeDynamic();updateStats();filt();
+    showFbSt('Firebase 連線中…','sync');
     loadFB();
   } else {
-    document.getElementById('log-err').style.display = 'block';
+    err.style.display = 'block';
   }
 }
 
@@ -411,16 +417,18 @@ async function fbBatchReplaceInactive(list){
   }catch(e){showFbSt('追蹤同步失敗','err');}
 }
 
-function showOfflineBtn(reason){
-  document.querySelector('#fbl .msg').textContent='⚠️ Firebase 連線失敗';
-  document.querySelector('#fbl .sub').textContent=reason||'請檢查網路狀態或關閉阻擋廣告擴充功能';
-  document.querySelector('#fbl .sub').style.color='#c0392b';
-  if(!document.getElementById('ob')){
-    const b=document.createElement('button');b.id='ob';b.className='btn btn-p';
-    b.textContent='以離線模式繼續（本次操作不儲存雲端）';
-    b.onclick=()=>{document.getElementById('fbl').style.display='none';computeDynamic();updateStats();filt();if(!workers.length)setTimeout(()=>{showToast('📥 請上傳 Excel');openImport();},400);};
-    document.getElementById('fbl').appendChild(b);
-  }
+function showOfflineBtn(reason,openIfEmpty=false){
+  document.getElementById('fbl').style.display='none';
+  const ob=document.getElementById('ob');if(ob)ob.remove();
+  const ind=document.getElementById('fb-ind');
+  ind.innerHTML='🔴 Firebase 未連線';
+  ind.style.background='rgba(248,113,113,.25)';
+  showFbSt('Firebase 未連線，已切換離線模式','err');
+  showToast('⚠️ '+(reason||'Firebase 連線失敗')+'，已切換離線模式');
+  computeDynamic();updateStats();filt();
+  if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
+  if(document.getElementById('page-inactive').classList.contains('active'))renderInactive();
+  if(openIfEmpty&&!workers.length)setTimeout(()=>{showToast('📥 請上傳 Excel');openImport();},500);
 }
 
 async function loadFB(){
@@ -443,7 +451,7 @@ async function loadFB(){
     computeDynamic();updateStats();filt();
     if(!workers.length)setTimeout(()=>{showToast('📥 尚無資料，請上傳 Excel');openImport();},600);
   }catch(e){
-    clearTimeout(timer);showOfflineBtn(e.message||'連線失敗');
+    clearTimeout(timer);showOfflineBtn(e.message||'連線失敗',true);
   }
 }
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -470,7 +478,7 @@ function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
 function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function normId(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}}
+function normId(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
 function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-_.()（）/／]/g,'');}
 function workerNameKey(w){return normText(w.name_zh)||normText(w.name_en)||'';}
