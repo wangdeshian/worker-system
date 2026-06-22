@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -360,8 +358,8 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 <div class="ov" id="ov-inactive-confirm"><div class="modal" style="max-width:560px">
   <div class="mhdr"><h3>⚠️ 確認移入已無聘僱追蹤</h3></div>
   <div class="mbdy">
-    <p style="margin-bottom:10px;color:var(--g1)">以下 <strong id="inactive-confirm-count">0</strong> 位移工在新上傳的名單中<strong>未出現</strong>，系統即將移入「已無聘僱追蹤」。</p>
-    <p style="margin-bottom:10px;font-size:12px;color:var(--g2)">若他們仍在聘僱中（例如報表篩選條件不同），請按「保留在台名單」。</p>
+    <p style="margin-bottom:10px;color:var(--g1)">以下 <strong id="inactive-confirm-count">0</strong> 筆資料將移入「已無聘僱追蹤」。</p>
+    <p style="margin-bottom:10px;font-size:12px;color:var(--g2)">包含新表單未出現的人，以及同一位移工更換雇主後的舊雇主聘僱關係。若判斷不需追蹤，請按「保留在台名單」。</p>
     <div id="inactive-confirm-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;font-size:13px"></div>
   </div>
   <div class="mftr" style="gap:8px">
@@ -394,11 +392,12 @@ const COL = 'workers';
 const INACTIVE_COL = 'inactive_workers';
 
 function docId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
+function inactiveDocId(w){const k=inactiveTrackKey(w)||docId(w);return k.replace(/[^a-zA-Z0-9_-]/g,'_')||docId(w);}
 function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(tp==='err'?'err':tp==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(tp!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
 
 async function fbSave(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
 async function fbDel(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
-async function fbDelInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(docId(w)).delete();}catch(e){console.error(e);}}
+async function fbDelInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(inactiveDocId(w)).delete();}catch(e){console.error(e);}}
 async function fbBatchReplace(list){
   if(!db)return;
   showFbSt('上傳中…','sync');
@@ -408,12 +407,12 @@ async function fbBatchReplace(list){
     showFbSt('✅ 已同步 '+list.length+' 筆');
   }catch(e){showFbSt('批次失敗','err');}
 }
-async function fbSaveInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(docId(w)).set(w);showFbSt('追蹤已同步');}catch(e){showFbSt('追蹤同步失敗','err');}}
+async function fbSaveInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(inactiveDocId(w)).set(w);showFbSt('追蹤已同步');}catch(e){showFbSt('追蹤同步失敗','err');}}
 async function fbBatchReplaceInactive(list){
   if(!db)return;
   try{
     const snap=await db.collection(INACTIVE_COL).get();const b=db.batch();snap.docs.forEach(d=>b.delete(d.ref));await b.commit();
-    for(let i=0;i<list.length;i+=400){const b2=db.batch();list.slice(i,i+400).forEach(w=>b2.set(db.collection(INACTIVE_COL).doc(docId(w)),w));await b2.commit();}
+    for(let i=0;i<list.length;i+=400){const b2=db.batch();list.slice(i,i+400).forEach(w=>b2.set(db.collection(INACTIVE_COL).doc(inactiveDocId(w)),w));await b2.commit();}
   }catch(e){showFbSt('追蹤同步失敗','err');}
 }
 
@@ -484,15 +483,26 @@ function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-
 function workerNameKey(w){return normText(w.name_zh)||normText(w.name_en)||'';}
 function workerEmployerKey(w){return normText(w.employer||w.last_employer)||'';}
 function workerFallbackKey(w){const n=workerNameKey(w),e=workerEmployerKey(w);return n&&e?n+'|'+e:'';}
+function inactiveTrackKey(w){const emp=workerEmployerKey(w),wk=workerKey(w);if(wk&&emp)return wk+'|EMP|'+emp;const fk=workerFallbackKey(w);return fk?'FB|'+fk:'';}
 function sameWorker(a,b){const ak=workerKey(a),bk=workerKey(b);if(ak&&bk&&ak===bk)return true;const af=workerFallbackKey(a),bf=workerFallbackKey(b);return !!af&&af===bf;}
+function nowStamp(){const now=new Date();return now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});}
+function hasEmployerChanged(oldW,newW){const oldEmp=workerEmployerKey(oldW),newEmp=workerEmployerKey(newW);return !!oldEmp&&!!newEmp&&oldEmp!==newEmp;}
+function makeEmployerChangeInactive(oldW,newW){
+  const oldEmp=oldW.employer||oldW.last_employer||'',newEmp=newW.employer||'新雇主',now=nowStamp();
+  return {...oldW,employer:oldEmp,last_employer:oldEmp,current_employer:newEmp,inactive_first_at:now,inactive_at:now,inactive_reason:'雇主變更：已換至 '+newEmp};
+}
 function recOptions(){return'<option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option>';}
-function mergeInactiveAfterImport(oldInactive, removedList, activeKeys, activeFallbackKeys){
-  const now=new Date().toLocaleDateString('zh-TW')+' '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+function mergeInactiveAfterImport(oldInactive, removedList, activeKeys, activeFallbackKeys, activeRelationKeys){
+  const now=nowStamp();
   const map=new Map();
-  oldInactive.forEach(w=>{const k=workerKey(w),fk=workerFallbackKey(w);if((k&&activeKeys.has(k))||(fk&&activeFallbackKeys.has(fk)))return;map.set(k||fk||('id_'+w.id),w);});
+  oldInactive.forEach(w=>{
+    const wk=workerKey(w),fk=workerFallbackKey(w),rel=inactiveTrackKey(w),emp=workerEmployerKey(w);
+    if((rel&&activeRelationKeys.has(rel))||(!emp&&((wk&&activeKeys.has(wk))||(fk&&activeFallbackKeys.has(fk)))))return;
+    map.set(rel||wk||fk||('id_'+w.id),w);
+  });
   removedList.forEach((w,i)=>{
-    const k=workerKey(w)||workerFallbackKey(w)||('removed_'+Date.now()+'_'+i),prev=map.get(k)||{};
-    map.set(k,{...prev,...w,id:prev.id||w.id||Date.now()+i+Math.random(),records:(w.records&&w.records.length?w.records:prev.records)||[],inactive_first_at:prev.inactive_first_at||now,inactive_at:now,inactive_reason:'新表單未出現（智慧刪除）',last_employer:w.employer||prev.last_employer||''});
+    const k=inactiveTrackKey(w)||workerKey(w)||workerFallbackKey(w)||('removed_'+Date.now()+'_'+i),prev=map.get(k)||{};
+    map.set(k,{...prev,...w,id:prev.id||w.id||Date.now()+i+Math.random(),records:(w.records&&w.records.length?w.records:prev.records)||[],inactive_first_at:prev.inactive_first_at||w.inactive_first_at||now,inactive_at:now,inactive_reason:w.inactive_reason||prev.inactive_reason||'新表單未出現（智慧刪除）',last_employer:w.last_employer||w.employer||prev.last_employer||'',current_employer:w.current_employer||prev.current_employer||''});
   });
   return [...map.values()];
 }
@@ -700,11 +710,15 @@ function confirmImport(){
   const nk = new Set(uMap.keys());
   const fkSet = new Set(incomingRows.map(workerFallbackKey).filter(Boolean));
   let added=0, updated=0;
-  const merged = [];
+  const merged = [], employerChangedList = [];
   incomingRows.forEach((imp, i) => {
     const ex = activeOld.find(w => sameWorker(imp,w));
-    const oldInactive = inactiveWorkers.find(w => sameWorker(imp,w));
-    if(ex){ merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++; }
+    const impRel = inactiveTrackKey(imp);
+    const oldInactive = inactiveWorkers.find(w => sameWorker(imp,w)&&inactiveTrackKey(w)===impRel);
+    if(ex){
+      if(hasEmployerChanged(ex,imp))employerChangedList.push(makeEmployerChangeInactive(ex,imp));
+      merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++;
+    }
     else if(oldInactive){ merged.push({...imp, id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
@@ -713,8 +727,9 @@ function confirmImport(){
   const keepActive = missingOld.filter(w => !gk(w)&&!workerFallbackKey(w));
   keepActive.forEach(w => { if(!merged.some(x=>x.id===w.id))merged.push(w); });
   const removedList = missingOld.filter(w => gk(w)||workerFallbackKey(w));
-  if(removedList.length > 0){
-    showInactiveConfirm(removedList, merged, nk, fkSet, added, updated);
+  const trackingList = removedList.concat(employerChangedList);
+  if(trackingList.length > 0){
+    showInactiveConfirm(trackingList, merged, nk, fkSet, added, updated);
     return;
   }
   execImport(merged, [], nk, fkSet, added, updated, 0);
@@ -723,7 +738,8 @@ function showInactiveConfirm(removedList, merged, nk, fkSet, added, updated){
   document.getElementById('inactive-confirm-list').innerHTML = removedList.map(w =>
     '<div style="padding:5px 0;border-bottom:1px solid var(--bdr);display:flex;gap:8px;align-items:center">'+
     '<span style="font-weight:600;min-width:160px">'+(w.name_en||w.name_zh||'(未知)')+'</span>'+
-    '<span style="color:var(--g2);flex:1">'+(w.employer||'')+'</span>'+
+    '<span style="color:var(--g2);flex:1">'+(w.last_employer||w.employer||'')+'</span>'+
+    '<span style="color:var(--p);font-size:11px">'+(w.inactive_reason||'新表單未出現（智慧刪除）')+'</span>'+
     '<span style="font-family:monospace;font-size:11px;color:#999">'+(w.resident_id||w.passport||'')+'</span></div>'
   ).join('');
   document.getElementById('inactive-confirm-count').textContent = removedList.length;
@@ -739,7 +755,10 @@ function showInactiveConfirm(removedList, merged, nk, fkSet, added, updated){
   document.getElementById('ov-inactive-confirm').classList.add('open');
 }
 function execImport(merged, removedList, nk, fkSet, added, updated, removed){
-  inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, nk, fkSet);
+  const activeKeys=new Set(merged.map(workerKey).filter(Boolean));
+  const activeFallbackKeys=new Set(merged.map(workerFallbackKey).filter(Boolean));
+  const activeRelationKeys=new Set(merged.map(inactiveTrackKey).filter(Boolean));
+  inactiveWorkers = mergeInactiveAfterImport(inactiveWorkers, removedList, activeKeys, activeFallbackKeys, activeRelationKeys);
   lastInactiveBatchCount = removed;
   workers = merged;
   cov('ov-import'); computeDynamic(); filt(); updateStats();
