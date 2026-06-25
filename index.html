@@ -400,6 +400,7 @@ async function fbDel(w){if(!db)return;try{await db.collection(COL).doc(docId(w))
 async function fbDelInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(inactiveDocId(w)).delete();}catch(e){console.error(e);}}
 async function fbBatchReplace(list){
   if(!db)return;
+  list=cleanWorkerList(list);
   showFbSt('上傳中…','sync');
   try{
     const snap=await db.collection(COL).get();const b=db.batch();snap.docs.forEach(d=>b.delete(d.ref));await b.commit();
@@ -410,6 +411,7 @@ async function fbBatchReplace(list){
 async function fbSaveInactive(w){if(!db)return;try{await db.collection(INACTIVE_COL).doc(inactiveDocId(w)).set(w);showFbSt('追蹤已同步');}catch(e){showFbSt('追蹤同步失敗','err');}}
 async function fbBatchReplaceInactive(list){
   if(!db)return;
+  list=cleanWorkerList(list);
   try{
     const snap=await db.collection(INACTIVE_COL).get();const b=db.batch();snap.docs.forEach(d=>b.delete(d.ref));await b.commit();
     for(let i=0;i<list.length;i+=400){const b2=db.batch();list.slice(i,i+400).forEach(w=>b2.set(db.collection(INACTIVE_COL).doc(inactiveDocId(w)),w));await b2.commit();}
@@ -439,11 +441,18 @@ async function loadFB(){
     }
     db = firebase.firestore();
     const snap=await db.collection(COL).get();
-    let inactiveDocs=[];
-    try{const inactiveSnap=await db.collection(INACTIVE_COL).get();inactiveDocs=inactiveSnap.docs.map(d=>d.data());}catch(e){inactiveDocs=[];}
+    let inactiveDocs=[],inactiveSnap=null;
+    try{inactiveSnap=await db.collection(INACTIVE_COL).get();inactiveDocs=inactiveSnap.docs.map(d=>d.data());}catch(e){inactiveDocs=[];}
     clearTimeout(timer);
-    workers=(snap.empty?[]:snap.docs.map(d=>d.data())).filter(w=>!isImportHeaderWorker(w));
-    inactiveWorkers=inactiveDocs;
+    const badDocs=snap.empty?[]:snap.docs.filter(d=>isImportHeaderWorker(d.data()));
+    const badInactiveDocs=inactiveSnap?inactiveSnap.docs.filter(d=>isImportHeaderWorker(d.data())):[];
+    workers=cleanWorkerList(snap.empty?[]:snap.docs.map(d=>d.data()));
+    inactiveWorkers=cleanWorkerList(inactiveDocs);
+    if(badDocs.length||badInactiveDocs.length){
+      const allBad=badDocs.concat(badInactiveDocs);
+      for(let i=0;i<allBad.length;i+=450){const b=db.batch();allBad.slice(i,i+450).forEach(d=>b.delete(d.ref));await b.commit();}
+      showToast('🧹 已清除表頭假資料 '+allBad.length+' 筆');
+    }
     document.getElementById('fb-ind').innerHTML='🟢 Firebase 已連線';
     document.getElementById('fb-ind').style.background='rgba(74,222,128,.25)';
     document.getElementById('fbl').style.display='none';
@@ -477,21 +486,31 @@ function daysLeft(s){const d=rocToDate(s);if(!d)return null;const t=new Date();t
 function mbw(d1,d2){return(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());}
 function gcls(d){return d<0?'expired':d<=30?'urgent':d<=180?'soon':'normal';}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function rowText(v){return String(v||'').trim().replace(/\s+/g,'').replace(/　/g,'');}
+const HEADER_TERMS=['入境日','離境日','雇主','雇主簡稱','雇主姓名','雇主名稱','工號','英文姓名','移工英文姓名','移工英文名','中文名','中文譯名','中文姓名','性別','國籍','護照號碼','護照號','護照到期','護照效期','工作期限','離管狀態','聘可文號','居留證號','任用來源','接管代碼','接管類別','業務員','操作'];
+function rowText(v){return String(v||'').trim().replace(/[\s　:：／/\\|,，、()（）\[\]【】「」"'`·.。_\-↕]/g,'');}
+function isHeaderKeyword(v){
+  const s=rowText(v);
+  if(!s)return false;
+  return HEADER_TERMS.some(t=>s===t||(s.includes(t)&&s.length<=t.length+4)||(t.includes(s)&&s.length>=2));
+}
 function isHeaderLikeRow(cols){
   const vals=cols.map(rowText);
   const names=new Set(vals.filter(Boolean));
-  const terms=['入境日','離境日','雇主','雇主簡稱','工號','英文姓名','移工英文姓名','中文名','中文譯名','性別','國籍','護照號碼','護照到期','工作期限','離管狀態','聘可文號','居留證號','任用來源','接管代碼','業務員'];
-  const hits=terms.filter(t=>names.has(t)).length;
+  const hits=vals.filter(isHeaderKeyword).length;
   if(hits>=3)return true;
-  if(['英文姓名','移工英文姓名'].includes(vals[4]))return true;
-  if(['中文名','中文譯名','中文姓名'].includes(vals[5])&&(['雇主','雇主簡稱'].includes(vals[2])||['國籍'].includes(vals[7])))return true;
+  if(['英文姓名','移工英文姓名','移工英文名'].includes(vals[4]))return true;
+  if(['中文名','中文譯名','中文姓名'].includes(vals[5])&&(['雇主','雇主簡稱','雇主姓名','雇主名稱'].includes(vals[2])||['國籍'].includes(vals[7])))return true;
+  if(names.has('移工英文姓名')&&names.has('中文譯名'))return true;
+  if(names.has('雇主簡稱')&&names.has('護照號碼'))return true;
   return false;
 }
 function isImportHeaderWorker(w){
   if(!w)return false;
-  return isHeaderLikeRow([w.entry_date,w.exit_date,w.employer,w.worker_id,w.name_en,w.name_zh,w.gender,w.nationality,w.passport,w.passport_exp,w.work_limit,w.status,w.permit_no,w.resident_id,w.source,w.takeover_code,w.salesman]);
+  const cols=[w.entry_date,w.exit_date,w.employer,w.worker_id,w.name_en,w.name_zh,w.gender,w.nationality,w.passport,w.passport_exp,w.work_limit,w.status,w.permit_no,w.resident_id,w.source,w.takeover_code,w.salesman];
+  if(isHeaderKeyword(w.name_en)||isHeaderKeyword(w.name_zh)||isHeaderKeyword(w.employer))return true;
+  return isHeaderLikeRow(cols);
 }
+function cleanWorkerList(list){return (list||[]).filter(w=>!isImportHeaderWorker(w));}
 function normId(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
 function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-_.()（）/／]/g,'');}
@@ -569,6 +588,7 @@ function switchTab(name,el){
 }
 function toggleSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sb-ov').classList.toggle('open');}
 function updateStats(){
+  workers=cleanWorkerList(workers);
   let ex=0,e60=0,tak=0;workers.forEach(w=>{const dl=daysLeft(w.work_limit);if(dl!==null&&dl<0)ex++;else if(dl!==null&&dl<=60)e60++;if(w.takeover_code==='承接')tak++;});
   document.getElementById('st-t').textContent=workers.length;document.getElementById('st-e').textContent=ex;
   document.getElementById('st-60').textContent=e60;document.getElementById('st-tk').textContent=tak;
@@ -576,6 +596,7 @@ function updateStats(){
 }
 // ── Filter / Table ────────────────────────────────────────────────────────────
 function filt(){
+  workers=cleanWorkerList(workers);
   const q=document.getElementById('q').value.toLowerCase(),nat=document.getElementById('f-nat').value,tak=document.getElementById('f-tak').value,lim=document.getElementById('f-lim').value;
   filtered=workers.filter(w=>{
     if(q&&![w.name_en,w.name_zh,w.employer,w.passport,w.permit_no,w.resident_id].some(v=>(v||'').toLowerCase().includes(q)))return false;
@@ -588,6 +609,7 @@ function filt(){
 function clearFilt(){['q','f-nat','f-tak','f-lim'].forEach(id=>document.getElementById(id).value='');filt();}
 function sortBy(c){sortDir=sortCol===c?-sortDir:1;sortCol=c;filt();}
 function renderTable(){
+  filtered=cleanWorkerList(filtered);
   const rows=filtered.slice((pg-1)*PAGE,pg*PAGE);
   document.getElementById('tbody').innerHTML=rows.map(w=>{
     const dl=daysLeft(w.work_limit);const lc=dl===null?'':dl<0?'exp-t':dl<=60?'soon-t':'';const isSel=sel.has(w.id);
@@ -717,6 +739,8 @@ function showImpPrev(name){
   document.getElementById('btn-ci').style.display='';}
 function confirmImport(){
   const gk = workerKey;
+  workers=cleanWorkerList(workers);
+  inactiveWorkers=cleanWorkerList(inactiveWorkers);
   const activeOld = workers.filter(w=>!isImportHeaderWorker(w));
   const uMap = new Map();
   const uNoKey = [];
