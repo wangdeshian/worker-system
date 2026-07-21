@@ -520,6 +520,27 @@ function workerFallbackKey(w){const n=workerNameKey(w),e=workerEmployerKey(w);re
 function inactiveTrackKey(w){const emp=workerEmployerKey(w),wk=workerKey(w);if(wk&&emp)return wk+'|EMP|'+emp;const fk=workerFallbackKey(w);return fk?'FB|'+fk:'';}
 function sameWorker(a,b){const ak=workerKey(a),bk=workerKey(b);if(ak&&bk&&ak===bk)return true;const af=workerFallbackKey(a),bf=workerFallbackKey(b);return !!af&&af===bf;}
 function nowStamp(){const now=new Date();return now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});}
+function parseDateTimeValue(v){
+  if(!v)return 0;
+  if(v instanceof Date&&!isNaN(v))return v.getTime();
+  let s=String(v).trim().replace(/　/g,' ').replace(/\s+/g,' ');
+  let mer='';
+  if(s.includes('下午')){mer='pm';s=s.replace('下午',' ');}
+  if(s.includes('上午')){mer='am';s=s.replace('上午',' ');}
+  s=s.replace(/\s+/g,' ').trim();
+  const m=s.match(/(\d{2,4})[.\/\-](\d{1,2})[.\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if(m){
+    let y=+m[1],mo=+m[2],d=+m[3],h=+(m[4]||0),mi=+(m[5]||0),sec=+(m[6]||0);
+    if(y<1911)y+=1911;
+    if(mer==='pm'&&h<12)h+=12;
+    if(mer==='am'&&h===12)h=0;
+    const dt=new Date(y,mo-1,d,h,mi,sec);
+    return isNaN(dt)?0:dt.getTime();
+  }
+  const t=Date.parse(String(v));
+  return isNaN(t)?0:t;
+}
+function inactiveSortTime(w){return parseDateTimeValue((w&&w.inactive_at)||(w&&w.inactive_first_at)||'');}
 function hasEmployerChanged(oldW,newW){const oldEmp=workerEmployerKey(oldW),newEmp=workerEmployerKey(newW);return !!oldEmp&&!!newEmp&&oldEmp!==newEmp;}
 function makeEmployerChangeInactive(oldW,newW){
   const oldEmp=oldW.employer||oldW.last_employer||'',newEmp=newW.employer||'新雇主',now=nowStamp();
@@ -935,7 +956,7 @@ function renderInactive(){
   if(sort==='employer')rows.sort((a,b)=>((a.w.last_employer||a.w.employer||'').localeCompare((b.w.last_employer||b.w.employer||''),'zh-TW')));
   else if(sort==='name')rows.sort((a,b)=>((a.w.name_en||a.w.name_zh||'').localeCompare((b.w.name_en||b.w.name_zh||''),'zh-TW')));
   else if(sort==='records')rows.sort((a,b)=>(b.w.records||[]).length-(a.w.records||[]).length);
-  else rows.sort((a,b)=>(b.w.inactive_at||'').localeCompare(a.w.inactive_at||''));
+  else rows.sort((a,b)=>inactiveSortTime(b.w)-inactiveSortTime(a.w)||((a.w.name_en||a.w.name_zh||'').localeCompare((b.w.name_en||b.w.name_zh||''),'zh-TW')));
   document.getElementById('ina-total').textContent=inactiveWorkers.length;
   document.getElementById('ina-emps').textContent=new Set(inactiveWorkers.map(w=>w.last_employer||w.employer||'').filter(Boolean)).size;
   document.getElementById('ina-last').textContent=lastInactiveBatchCount;
