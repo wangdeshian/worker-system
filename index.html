@@ -52,6 +52,16 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .rec-add{display:flex;flex-direction:column;gap:6px;background:#f8f9fc;border-radius:6px;padding:10px}
 .rec-add select,.rec-add textarea{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:5px;font-size:12px;background:#fff;resize:none}.rec-add textarea{height:60px}
 .rec-add-row{display:flex;gap:6px;align-items:center}.rec-cnt{background:#e8f0fb;color:var(--p);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.cycle-box{margin-top:12px;border:1px solid var(--b);border-radius:8px;background:#f8f9fc;padding:10px}
+.cycle-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:11px;font-weight:800;color:var(--m);letter-spacing:.5px}
+.cycle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.cycle-cell{background:#fff;border:1px solid var(--b);border-radius:6px;padding:7px 8px}
+.cycle-cell .k{font-size:10px;color:var(--m);font-weight:700;margin-bottom:2px}.cycle-cell .v{font-size:12px;color:var(--t);font-weight:700;word-break:break-word}
+.cycle-status{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}.cycle-ok{background:#e8f5ee;color:var(--s)}.cycle-due{background:#fffbea;color:var(--w)}.cycle-lack{background:#fde8e8;color:var(--d)}.cycle-new{background:#e8f0fb;color:var(--p)}.cycle-none{background:#f3f4f6;color:var(--m)}
+.cycle-line{font-size:11px;color:var(--m);margin-top:7px;line-height:1.5}
+.quick-rec{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+.quick-rec button{border:1px solid var(--b);background:#fff;color:var(--p);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer}
+.quick-rec button:hover{background:var(--pl);border-color:var(--p)}
 .rec-item.type-電話,.crr.type-電話{border-left-color:#1a5fa8}
 .rec-item.type-訪視,.crr.type-訪視{border-left-color:#1b8a4e}
 .rec-item.type-問題,.crr.type-問題{border-left-color:#c0392b}
@@ -547,6 +557,48 @@ function makeEmployerChangeInactive(oldW,newW){
   return {...oldW,employer:oldEmp,last_employer:oldEmp,current_employer:newEmp,inactive_first_at:now,inactive_at:now,inactive_reason:'雇主變更：已換至 '+newEmp};
 }
 function recOptions(){return'<option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option>';}
+const SERVICE_CYCLE_DAYS=60;
+const REC_TEMPLATES=[
+  {label:'電話關懷',type:'電話',content:'電話關懷移工及雇主目前工作與生活狀況。\n處理結果：目前狀況正常，持續關懷。'},
+  {label:'訪視',type:'訪視',content:'親自訪視移工及雇主，確認工作、生活及溝通狀況。\n處理結果：已完成訪視並持續追蹤後續狀況。'},
+  {label:'移工想轉換',type:'想轉換雇主',content:'移工反映不適應目前工作環境，有轉換意願。\n處理經過：已先了解原因並安撫，後續與雇主溝通確認。\n處理結果：需持續追蹤。'},
+  {label:'雇主想換工',type:'雇主想換',content:'雇主反映對移工工作狀況不滿意，有更換移工意願。\n處理經過：已了解雇主反映事項，並協助雙方溝通改善。\n處理結果：需持續追蹤。'},
+  {label:'薪資問題',type:'薪資問題',content:'移工或雇主反映薪資相關問題。\n處理經過：已了解薪資給付狀況並協助雙方確認。\n處理結果：需持續追蹤。'},
+  {label:'溝通問題',type:'問題',content:'移工與雇主反映溝通或工作配合問題。\n處理經過：已協助雙方說明與溝通。\n處理結果：需持續追蹤。'}
+];
+function serviceBaseDate(w){return rocToDate(w.takeover_date||w.takeover_start||w.entry_date);}
+function lastRecordTime(recs){return (recs||[]).reduce((mx,r)=>Math.max(mx,parseDateTimeValue(r.date)),0);}
+function serviceCycleInfo(w){
+  const base=serviceBaseDate(w),today=new Date();today.setHours(0,0,0,0);
+  const recs=w.records||[],lastTs=lastRecordTime(recs);
+  if(!base)return{status:'none',label:'無起算日',baseLabel:'-',days:null,due:0,have:recs.length,lack:0,lastDays:null,avg:null,baseType:(w.takeover_date||w.takeover_start)?'接管日':'入境日'};
+  base.setHours(0,0,0,0);
+  const days=Math.max(0,Math.floor((today-base)/86400000));
+  const due=Math.floor(days/SERVICE_CYCLE_DAYS),have=recs.length,lack=Math.max(0,due-have);
+  const lastDays=lastTs?Math.max(0,Math.floor((today-new Date(lastTs).setHours(0,0,0,0))/86400000)):null;
+  const avg=have?Math.round(days/have):null;
+  let status='ok',label='正常';
+  if(due===0){status='new';label='尚未到期';}
+  else if(lack>0||lastDays===null||lastDays>SERVICE_CYCLE_DAYS){status='lack';label='不足';}
+  else if(lastDays>=45){status='due';label='將到期';}
+  return{status,label,baseLabel:(w.takeover_date||w.takeover_start||w.entry_date||'-'),days,due,have,lack,lastDays,avg,baseType:(w.takeover_date||w.takeover_start)?'接管日':'入境日'};
+}
+function cycleStatusClass(status){return status==='ok'?'cycle-ok':status==='due'?'cycle-due':status==='lack'?'cycle-lack':status==='new'?'cycle-new':'cycle-none';}
+function buildCycleBox(w){
+  const c=serviceCycleInfo(w),last=c.lastDays===null?'尚無紀錄':(c.lastDays===0?'今天':c.lastDays+' 天前'),avg=c.avg===null?'-':c.avg+' 天/張';
+  const days=c.days===null?'-':c.days+' 天',lack=c.lack?'<span style="color:var(--d)">缺 '+c.lack+' 張</span>':'0 張';
+  return'<div class="cycle-box"><div class="cycle-h"><span>客服週期 60 天 / 張</span><span class="cycle-status '+cycleStatusClass(c.status)+'">'+c.label+'</span></div>'+
+    '<div class="cycle-grid"><div class="cycle-cell"><div class="k">'+c.baseType+'</div><div class="v">'+esc(c.baseLabel)+'</div></div><div class="cycle-cell"><div class="k">接管至今</div><div class="v">'+days+'</div></div>'+
+    '<div class="cycle-cell"><div class="k">應有 / 已有</div><div class="v">'+c.due+' / '+c.have+' 張</div></div><div class="cycle-cell"><div class="k">缺少</div><div class="v">'+lack+'</div></div>'+
+    '<div class="cycle-cell"><div class="k">最後服務</div><div class="v">'+last+'</div></div><div class="cycle-cell"><div class="k">平均週期</div><div class="v">'+avg+'</div></div></div>'+
+    '<div class="cycle-line">目前先用'+c.baseType+'起算；之後若資料有承接日，可改成承接日優先。</div></div>';
+}
+function quickRecButtons(){return'<div class="quick-rec">'+REC_TEMPLATES.map((t,i)=>'<button type="button" onclick="applyRecTemplate('+i+')">'+esc(t.label)+'</button>').join('')+'</div>';}
+function applyRecTemplate(i){
+  const t=REC_TEMPLATES[i],typeEl=document.getElementById('rec-type'),txtEl=document.getElementById('rec-txt');if(!t||!txtEl)return;
+  if(typeEl)typeEl.value=t.type;
+  const cur=txtEl.value.trim();txtEl.value=cur?cur+'\n'+t.content:t.content;txtEl.focus();
+}
 function mergeInactiveAfterImport(oldInactive, removedList, activeKeys, activeFallbackKeys, activeRelationKeys){
   const now=nowStamp();
   const map=new Map();
@@ -673,7 +725,7 @@ function toggleAll(c){if(c)filtered.forEach(w=>sel.add(w.id));else sel.clear();[
 function updSel(){const n=sel.size;document.getElementById('sel-info').textContent=n?'已選取'+n+'筆':'';document.getElementById('btn-del').style.display=n?'':'none';}
 function rowCk(e,id){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;openDP(id);}
 // ── Detail / Records ──────────────────────────────────────────────────────────
-const FIELDS=[['entry_date','入境日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
+const FIELDS=[['entry_date','入境日'],['takeover_date','接管日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
 function openDP(id){
   editId=id;const w=workers.find(x=>x.id===id);if(!w)return;if(!w.records)w.records=[];
   document.getElementById('dp-title').textContent=w.name_en+(w.name_zh?' / '+w.name_zh:'');
@@ -692,7 +744,7 @@ function buildRec(w){
   const recs=w.records||[];const today=new Date().toLocaleDateString('zh-TW');
   const list=!recs.length?'<div style="text-align:center;color:var(--m);font-size:12px;padding:10px 0">尚無紀錄</div>'
     :recs.map((r,i)=>'<div class="rec-item type-'+r.type+'"><div class="rec-meta"><span class="rec-date">'+r.date+'</span><span class="rec-type rec-type-'+r.type+'">'+r.type+'</span></div><div class="rec-content">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div><button class="rec-del" onclick="delRec('+w.id+','+i+')" title="刪除">✕</button></div>').join('');
-  return'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1"><option value="電話">📞 電話</option><option value="訪視">🏠 訪視</option><option value="問題">⚠️ 問題</option><option value="回報">📋 回報</option><option value="離境">✈️ 離境</option><option value="解約驗證">📄 解約驗證</option><option value="想轉換雇主">🔄 想轉換雇主</option><option value="雇主想換">👤 雇主想換</option><option value="服務費欠費">💸 服務費欠費</option><option value="想重入國">🛬 想重入國</option><option value="薪資問題">💰 薪資問題</option><option value="其他">📝 其他</option></select><span style="font-size:11px;color:var(--m)">'+today+'</span></div><textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
+  return buildCycleBox(w)+'<div class="rec-sec"><h4>客服紀錄 '+(recs.length?'<span class="rec-cnt">'+recs.length+' 則</span>':'')+'</h4><div class="rec-list">'+list+'</div><div class="rec-add"><div class="rec-add-row"><select id="rec-type" style="flex:1">'+recOptions()+'</select><span style="font-size:11px;color:var(--m)">'+today+'</span></div>'+quickRecButtons()+'<textarea id="rec-txt" placeholder="輸入客服紀錄內容…"></textarea><button class="btn btn-p btn-sm" onclick="addRec('+w.id+')" style="align-self:flex-end">＋ 新增紀錄</button></div></div>';
 }
 
 function addRec(wid){
@@ -701,13 +753,13 @@ function addRec(wid){
   if(!txt){showToast('請輸入紀錄內容');return;}
   const dpb=document.getElementById('dp-body'),dpTop=dpb?dpb.scrollTop:0;
   const now=new Date();w.records.unshift({date:now.toLocaleDateString('zh-TW')+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),type,content:txt});
-  const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');
-  if(old)old.outerHTML=buildRec(w);else body.innerHTML+=buildRec(w);
+  const body=document.getElementById('dp-body'),oldCycle=body.querySelector('.cycle-box'),old=body.querySelector('.rec-sec'),newRec=buildRec(w);
+  if(oldCycle&&old){oldCycle.remove();old.outerHTML=newRec;}else if(old)old.outerHTML=newRec;else body.innerHTML+=newRec;
   if(dpb)requestAnimationFrame(()=>{dpb.scrollTop=dpTop;});
   fbSave(w);showToast('✅ 客服紀錄已新增');renderTableKeepPosition();
   if(document.getElementById('page-crm').classList.contains('active'))renderCRM();
 }
-function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body');const old=body.querySelector('.rec-sec');if(old)old.outerHTML=buildRec(w);showToast('🗑 紀錄已刪除');}
+function delRec(wid,idx){const w=workers.find(x=>x.id===wid);if(!w||!w.records)return;if(!confirm('確定刪除？'))return;w.records.splice(idx,1);fbSave(w);const body=document.getElementById('dp-body'),oldCycle=body.querySelector('.cycle-box'),old=body.querySelector('.rec-sec'),newRec=buildRec(w);if(oldCycle&&old){oldCycle.remove();old.outerHTML=newRec;}else if(old)old.outerHTML=newRec;showToast('🗑 紀錄已刪除');}
  
 function openBatch(){if(!sel.size){showToast('請先勾選移工');return;}
   document.getElementById('b-cnt').textContent=sel.size;
@@ -777,9 +829,9 @@ function confirmImport(){
     const oldInactive = inactiveWorkers.find(w => sameWorker(imp,w)&&inactiveTrackKey(w)===impRel);
     if(ex){
       if(hasEmployerChanged(ex,imp))employerChangedList.push(makeEmployerChangeInactive(ex,imp));
-      merged.push({...imp, id: ex.id, records: ex.records||[]}); updated++;
+      merged.push({...imp, takeover_date:ex.takeover_date||imp.takeover_date||'', id: ex.id, records: ex.records||[]}); updated++;
     }
-    else if(oldInactive){ merged.push({...imp, id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
+    else if(oldInactive){ merged.push({...imp, takeover_date:oldInactive.takeover_date||imp.takeover_date||'', id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
   const mergedIds = new Set(merged.map(w=>w.id));
@@ -1024,10 +1076,11 @@ function renderCRM(){
     const recs=ft?w.records.filter(r=>r.type===ft):w.records;const last=recs[0]?.date||'';
     const emp=(w.employer||'').replace(/ \(接\)/g,'').replace(/ \(遞:\)/g,'');
     const dl=daysLeft(w.work_limit);const dls=dl===null?'':dl<0?'⚠️已到期':dl<=60?'⚠️剩'+dl+'天':'剩'+dl+'天';
+    const cyc=serviceCycleInfo(w),cycTxt='客服週期 應 '+cyc.due+' / 已 '+cyc.have+(cyc.lack?' / 缺 '+cyc.lack:'');
     const recsHtml=recs.map(r=>'<div class="crr type-'+r.type+'"><div class="cri"><span class="d">'+r.date+'</span><span class="crt" style="background:'+(TB[r.type]||'#f3f4f6')+';color:'+(TC[r.type]||'#6b7280')+'">'+r.type+'</span></div><div class="crc">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div></div>').join('');
     return'<div class="ccard"><div class="cchdr" onclick="togCC('+w.id+')"><span class="tico" id="ci-'+w.id+'">▶</span>'+
-      '<div class="cwinfo"><div class="cwname">'+(w.name_en||'')+(w.name_zh?' / '+w.name_zh:'')+' </div><div class="cwmeta">'+emp+(dls?' · '+dls:'')+' · 工作期限 '+(w.work_limit||'-')+'</div></div>'+
-      '<div class="cbadge"><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+last.substring(0,10)+'</span><span class="cgo" onclick="event.stopPropagation();gotoW('+w.id+')">→ 編輯</span></div>'+
+      '<div class="cwinfo"><div class="cwname">'+(w.name_en||'')+(w.name_zh?' / '+w.name_zh:'')+' </div><div class="cwmeta">'+emp+(dls?' · '+dls:'')+' · 工作期限 '+(w.work_limit||'-')+' · '+cycTxt+'</div></div>'+
+      '<div class="cbadge"><span class="cycle-status '+cycleStatusClass(cyc.status)+'">'+cyc.label+'</span><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+last.substring(0,10)+'</span><span class="cgo" onclick="event.stopPropagation();gotoW('+w.id+')">→ 編輯</span></div>'+
       '</div><div class="ccbody" id="cc-'+w.id+'">'+recsHtml+'</div></div>';
   }).join('');}
 function togCC(wid){const b=document.getElementById('cc-'+wid),ic=document.getElementById('ci-'+wid);ic.textContent=b.classList.toggle('open')?'▼':'▶';}
