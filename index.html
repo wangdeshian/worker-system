@@ -59,6 +59,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
 .cycle-cell .k{font-size:10px;color:var(--m);font-weight:700;margin-bottom:2px}.cycle-cell .v{font-size:12px;color:var(--t);font-weight:700;word-break:break-word}
 .cycle-status{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}.cycle-ok{background:#e8f5ee;color:var(--s)}.cycle-due{background:#fffbea;color:var(--w)}.cycle-lack{background:#fde8e8;color:var(--d)}.cycle-new{background:#e8f0fb;color:var(--p)}.cycle-none{background:#f3f4f6;color:var(--m)}
 .cycle-line{font-size:11px;color:var(--m);margin-top:7px;line-height:1.5}
+.takeover-date{font-size:11px;color:var(--p);margin-top:4px;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
 .quick-rec{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
 .quick-rec button{border:1px solid var(--b);background:#fff;color:var(--p);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer}
 .quick-rec button:hover{background:var(--pl);border-color:var(--p)}
@@ -568,6 +569,7 @@ const REC_TEMPLATES=[
   {label:'薪資問題',type:'薪資問題',content:'移工或雇主反映薪資相關問題。\n處理經過：已了解薪資給付狀況並協助雙方確認。\n處理結果：需持續追蹤。'},
   {label:'溝通問題',type:'問題',content:'移工與雇主反映溝通或工作配合問題。\n處理經過：已協助雙方說明與溝通。\n處理結果：需持續追蹤。'}
 ];
+function takeoverLabel(w){const value=w.takeover_date||w.takeover_start;return value?'接管日：'+value:'未填接管日';}
 function serviceBaseDate(w){return rocToDate(w.takeover_date||w.takeover_start||w.entry_date);}
 function lastRecordTime(recs){return (recs||[]).reduce((mx,r)=>Math.max(mx,parseDateTimeValue(r.date)),0);}
 function serviceCycleInfo(w){
@@ -692,7 +694,7 @@ function renderTable(){
     const rc=w.records&&w.records.length?'💬'+w.records.length+' ':'';
     return'<tr class="'+(isSel?'sel':'')+'" onclick="rowCk(event,'+w.id+')">'+
       '<td onclick="event.stopPropagation()"><input type="checkbox" '+(isSel?'checked':'')+' onchange="toggleRow('+w.id+',this.checked)"></td>'+
-      '<td><strong>'+(w.name_en||'')+'</strong></td><td>'+(w.name_zh||'')+'</td>'+
+      '<td><strong>'+(w.name_en||'')+'</strong><div class="takeover-date">'+esc(takeoverLabel(w))+'</div></td><td>'+(w.name_zh||'')+'</td>'+
       '<td title="'+(w.employer||'')+'">'+(w.employer||'').replace(/ \(接\)/g,'').replace(/ \(遞:\)/g,'').substring(0,10)+'</td>'+
       '<td>'+(w.nationality?'<span class="chip chip-'+w.nationality+'">'+w.nationality+'</span>':'')+'</td>'+
       '<td>'+(w.entry_date||'')+'</td><td class="'+lc+'">'+(w.work_limit||'')+'</td>'+
@@ -1088,7 +1090,7 @@ function renderCRM(){
     const doneBtn=done?'<span class="cycle-status cycle-ok">已完成</span><span class="cdone undo" onclick="event.stopPropagation();undoCrmDone('+w.id+')">取消完成</span>':'<span class="cdone" onclick="event.stopPropagation();markCrmDone('+w.id+')">完成</span>';
     const recsHtml=recs.map(r=>'<div class="crr type-'+r.type+'"><div class="cri"><span class="d">'+r.date+'</span><span class="crt" style="background:'+(TB[r.type]||'#f3f4f6')+';color:'+(TC[r.type]||'#6b7280')+'">'+r.type+'</span></div><div class="crc">'+r.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div></div>').join('');
     return'<div class="ccard"><div class="cchdr" onclick="togCC('+w.id+')"><span class="tico" id="ci-'+w.id+'">▶</span>'+
-      '<div class="cwinfo"><div class="cwname">'+(w.name_en||'')+(w.name_zh?' / '+w.name_zh:'')+' </div><div class="cwmeta">'+emp+(dls?' · '+dls:'')+' · 工作期限 '+(w.work_limit||'-')+' · '+cycTxt+'</div></div>'+
+      '<div class="cwinfo"><div class="cwname">'+(w.name_en||'')+(w.name_zh?' / '+w.name_zh:'')+' </div><div class="takeover-date">'+esc(takeoverLabel(w))+'</div><div class="cwmeta">'+emp+(dls?' · '+dls:'')+' · 工作期限 '+(w.work_limit||'-')+' · '+cycTxt+'</div></div>'+
       '<div class="cbadge"><span class="cycle-status '+cycleStatusClass(cyc.status)+'">'+cyc.label+'</span><span class="crcnt">💬 '+recs.length+' 則</span><span class="cdate">'+last.substring(0,10)+'</span>'+doneBtn+'<span class="cgo" onclick="event.stopPropagation();gotoW('+w.id+')">→ 編輯</span></div>'+
       '</div><div class="ccbody" id="cc-'+w.id+'">'+recsHtml+'</div></div>';
   }).join('');}
