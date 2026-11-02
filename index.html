@@ -522,7 +522,8 @@ function isImportHeaderWorker(w){
   if(isHeaderKeyword(w.name_en)||isHeaderKeyword(w.name_zh)||isHeaderKeyword(w.employer))return true;
   return isHeaderLikeRow(cols);
 }
-function cleanWorkerList(list){return (list||[]).filter(w=>!isImportHeaderWorker(w));}
+function isShiftedImportWorker(w){return !!w&&['男','女'].includes(w.nationality)&&['印','菲','越','泰'].includes(w.passport)&&!!rocToDate(w.resident_id);}
+function cleanWorkerList(list){return (list||[]).filter(w=>!isImportHeaderWorker(w)&&!isShiftedImportWorker(w));}
 function normId(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
 function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-_.()（）/／]/g,'');}
@@ -795,7 +796,10 @@ function processFile(f){if(f.name.toLowerCase().match(/\.xlsx?$/))processExcel(f
 function parseHireReport(rows){
   const norm=v=>String(v||'').replace(/\s/g,'');
   const hi=rows.findIndex(r=>r.some(v=>norm(v)==='聘起日')&&r.some(v=>norm(v).includes('姓名')));
-  if(hi<0)return null;
+  if(hi<0){
+    if(rows.some(r=>r.some(v=>norm(v).includes('聘起'))))throw new Error('無法辨識聘起日報表表頭，已停止匯入');
+    return null;
+  }
   const headers=rows[hi].map(norm),at=(...names)=>headers.findIndex(h=>names.includes(h));
   const dateKeys=new Set(['entry_date','hire_start_date','exit_date','passport_exp','work_limit']);
   const fields={
