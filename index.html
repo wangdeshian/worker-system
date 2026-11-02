@@ -569,13 +569,13 @@ const REC_TEMPLATES=[
   {label:'薪資問題',type:'薪資問題',content:'移工或雇主反映薪資相關問題。\n處理經過：已了解薪資給付狀況並協助雙方確認。\n處理結果：需持續追蹤。'},
   {label:'溝通問題',type:'問題',content:'移工與雇主反映溝通或工作配合問題。\n處理經過：已協助雙方說明與溝通。\n處理結果：需持續追蹤。'}
 ];
-function takeoverLabel(w){const value=w.takeover_date||w.takeover_start;return value?'接管日：'+value:'未填接管日';}
-function serviceBaseDate(w){return rocToDate(w.takeover_date||w.takeover_start||w.entry_date);}
+function takeoverLabel(w){const value=w.hire_start_date||w.takeover_date||w.takeover_start;return value?(w.hire_start_date?'聘起日：':'接管日：')+value:'未填聘起日';}
+function serviceBaseDate(w){return rocToDate(w.hire_start_date||w.takeover_date||w.takeover_start);}
 function lastRecordTime(recs){return (recs||[]).reduce((mx,r)=>Math.max(mx,parseDateTimeValue(r.date)),0);}
 function serviceCycleInfo(w){
   const base=serviceBaseDate(w),today=new Date();today.setHours(0,0,0,0);
   const recs=w.records||[],lastTs=lastRecordTime(recs);
-  if(!base)return{status:'none',label:'無起算日',baseLabel:'-',days:null,due:0,have:recs.length,lack:0,lastDays:null,avg:null,baseType:(w.takeover_date||w.takeover_start)?'接管日':'入境日'};
+  if(!base)return{status:'none',label:'未填聘起日',baseLabel:'-',days:null,due:0,have:recs.length,lack:0,lastDays:null,avg:null,baseType:'聘起日'};
   base.setHours(0,0,0,0);
   const days=Math.max(0,Math.floor((today-base)/86400000));
   const due=Math.floor(days/SERVICE_CYCLE_DAYS),have=recs.length,lack=Math.max(0,due-have);
@@ -585,7 +585,7 @@ function serviceCycleInfo(w){
   if(due===0){status='new';label='尚未到期';}
   else if(lack>0||lastDays===null||lastDays>SERVICE_CYCLE_DAYS){status='lack';label='不足';}
   else if(lastDays>=45){status='due';label='將到期';}
-  return{status,label,baseLabel:(w.takeover_date||w.takeover_start||w.entry_date||'-'),days,due,have,lack,lastDays,avg,baseType:(w.takeover_date||w.takeover_start)?'接管日':'入境日'};
+  return{status,label,baseLabel:(w.hire_start_date||w.takeover_date||w.takeover_start||'-'),days,due,have,lack,lastDays,avg,baseType:w.hire_start_date?'聘起日':'接管日'};
 }
 function cycleStatusClass(status){return status==='ok'?'cycle-ok':status==='due'?'cycle-due':status==='lack'?'cycle-lack':status==='new'?'cycle-new':'cycle-none';}
 function buildCycleBox(w){
@@ -595,7 +595,7 @@ function buildCycleBox(w){
     '<div class="cycle-grid"><div class="cycle-cell"><div class="k">'+c.baseType+'</div><div class="v">'+esc(c.baseLabel)+'</div></div><div class="cycle-cell"><div class="k">接管至今</div><div class="v">'+days+'</div></div>'+
     '<div class="cycle-cell"><div class="k">應有 / 已有</div><div class="v">'+c.due+' / '+c.have+' 張</div></div><div class="cycle-cell"><div class="k">缺少</div><div class="v">'+lack+'</div></div>'+
     '<div class="cycle-cell"><div class="k">最後服務</div><div class="v">'+last+'</div></div><div class="cycle-cell"><div class="k">平均週期</div><div class="v">'+avg+'</div></div></div>'+
-    '<div class="cycle-line">目前先用'+c.baseType+'起算；之後若資料有承接日，可改成承接日優先。</div></div>';
+    '<div class="cycle-line">'+(c.days===null?'請匯入聘起日或填寫接管日。':'依'+c.baseType+'起算，每滿 60 天應有一張客服單。')+'</div></div>';
 }
 function quickRecButtons(){return'<div class="quick-rec">'+REC_TEMPLATES.map((t,i)=>'<button type="button" onclick="applyRecTemplate('+i+')">'+esc(t.label)+'</button>').join('')+'</div>';}
 function applyRecTemplate(i){
@@ -730,7 +730,7 @@ function toggleAll(c){if(c)filtered.forEach(w=>sel.add(w.id));else sel.clear();[
 function updSel(){const n=sel.size;document.getElementById('sel-info').textContent=n?'已選取'+n+'筆':'';document.getElementById('btn-del').style.display=n?'':'none';}
 function rowCk(e,id){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;openDP(id);}
 // ── Detail / Records ──────────────────────────────────────────────────────────
-const FIELDS=[['entry_date','入境日'],['takeover_date','接管日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
+const FIELDS=[['entry_date','入境日'],['hire_start_date','聘起日'],['takeover_date','接管日'],['exit_date','離境日'],['employer','雇主'],['worker_id','工號'],['name_en','英文姓名'],['name_zh','中文名'],['gender','性別'],['nationality','國籍'],['passport','護照號碼'],['passport_exp','護照到期'],['work_limit','工作期限'],['status','離管狀態'],['permit_no','聘可文號'],['resident_id','居留證號'],['source','任用來源'],['takeover_code','接管代碼'],['salesman','業務員']];
 function openDP(id){
   editId=id;const w=workers.find(x=>x.id===id);if(!w)return;if(!w.records)w.records=[];
   document.getElementById('dp-title').textContent=w.name_en+(w.name_zh?' / '+w.name_zh:'');
@@ -792,12 +792,49 @@ function openImport(){document.getElementById('ov-import').classList.add('open')
 function handleDrop(e){e.preventDefault();if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);}
 function handleFile(inp){if(inp.files[0])processFile(inp.files[0]);}
 function processFile(f){if(f.name.toLowerCase().match(/\.xlsx?$/))processExcel(f);else processCSV(f);}
+function parseHireReport(rows){
+  const norm=v=>String(v||'').replace(/\s/g,'');
+  const hi=rows.findIndex(r=>r.some(v=>norm(v)==='聘起日')&&r.some(v=>norm(v).includes('姓名')));
+  if(hi<0)return null;
+  const headers=rows[hi].map(norm),at=(...names)=>headers.findIndex(h=>names.includes(h));
+  const dateKeys=new Set(['entry_date','hire_start_date','exit_date','passport_exp','work_limit']);
+  const fields={
+    entry_date:at('入境日'),hire_start_date:at('聘起日'),exit_date:at('離境日'),
+    employer:at('雇主編號/簡稱','雇主簡稱','雇主'),worker_id:at('工號'),
+    name_en:at('移工中英文姓名','移工英文姓名','英文姓名'),name_zh:at('中文譯名','中文名'),
+    gender:at('性別'),nationality:at('國籍'),passport:at('護照號碼'),
+    passport_exp:at('護照到期'),resident_id:at('居留證號'),work_limit:at('工作期限'),
+    permit_no:at('核准函號','聘可文號'),status:at('離管說明','離管狀態'),
+    source:at('任用來源'),takeover_code:at('接管代碼','任用'),salesman:at('業務員')
+  };
+  if(fields.name_en<0||fields.employer<0||fields.resident_id<0)throw new Error('報表缺少姓名、雇主或居留證號欄位');
+  const result=[];
+  for(const row of rows.slice(hi+1)){
+    if(norm(row[fields.hire_start_date])==='聘起日')continue;
+    const w={};
+    for(const [key,index] of Object.entries(fields)){
+      let value=index<0?'':row[index];
+      if(dateKeys.has(key)&&typeof value==='number'){
+        const d=XLSX.SSF.parse_date_code(value);
+        value=d?(d.y-1911)+'.'+String(d.m).padStart(2,'0')+'.'+String(d.d).padStart(2,'0'):'';
+      }
+      w[key]=String(value??'').trim();
+    }
+    if(!w.name_en||!w.employer||/合計|總計/.test(w.name_en)||isImportHeaderWorker(w))continue;
+    const codes={'接':'承接','初':'初招','重':'重招','遞':'遞補'};
+    w.takeover_code=codes[w.takeover_code]||w.takeover_code;
+    result.push(w);
+  }
+  return result;
+}
 function processExcel(file){
   const r=new FileReader();r.onload=e=>{
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames.includes('Sheet1')?'Sheet1':wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const hireRows=parseHireReport(rows);
+      if(hireRows!==null){impBuf=hireRows;showImpPrev(file.name);return;}
       let ds=0;for(let i=0;i<rows.length;i++){if(rows[i].some(v=>String(v).includes('入境日')||String(v).includes('英文姓名'))){ds=i+1;break;}}
       impBuf=[];
       for(let i=ds;i<rows.length;i++){
@@ -810,6 +847,9 @@ function processExcel(file){
   };r.readAsArrayBuffer(file);}
 function processCSV(file){
   const r=new FileReader();r.onload=e=>{
+    const csvBook=XLSX.read(e.target.result,{type:'string',raw:true});
+    const hireRows=parseHireReport(XLSX.utils.sheet_to_json(csvBook.Sheets[csvBook.SheetNames[0]],{header:1,defval:''}));
+    if(hireRows!==null){impBuf=hireRows;showImpPrev(file.name);return;}
     const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());impBuf=[];
     lines.slice(1).forEach(line=>{const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());if(cols.length>=9&&cols[4]&&!isHeaderLikeRow(cols))impBuf.push({entry_date:cols[0]||'',exit_date:cols[1]||'',employer:cols[2]||'',worker_id:cols[3]||'',name_en:cols[4]||'',name_zh:cols[5]||'',gender:cols[6]||'',nationality:cols[7]||'',passport:cols[8]||'',passport_exp:cols[9]||'',work_limit:cols[10]||'',status:cols[11]||'',permit_no:cols[12]||'',resident_id:cols[13]||'',source:cols[14]||'',takeover_code:cols[15]||'',salesman:cols[16]||''});});
     showImpPrev(file.name);}; r.readAsText(file,'UTF-8');}
@@ -835,9 +875,9 @@ function confirmImport(){
     const oldInactive = inactiveWorkers.find(w => sameWorker(imp,w)&&inactiveTrackKey(w)===impRel);
     if(ex){
       if(hasEmployerChanged(ex,imp))employerChangedList.push(makeEmployerChangeInactive(ex,imp));
-      merged.push({...imp, takeover_date:ex.takeover_date||imp.takeover_date||'', crm_done_at:ex.crm_done_at||'', id: ex.id, records: ex.records||[]}); updated++;
+      merged.push({...imp, hire_start_date:imp.hire_start_date||ex.hire_start_date||'', takeover_date:ex.takeover_date||imp.takeover_date||'', crm_done_at:ex.crm_done_at||'', id: ex.id, records: ex.records||[]}); updated++;
     }
-    else if(oldInactive){ merged.push({...imp, takeover_date:oldInactive.takeover_date||imp.takeover_date||'', crm_done_at:oldInactive.crm_done_at||'', id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
+    else if(oldInactive){ merged.push({...imp, hire_start_date:imp.hire_start_date||oldInactive.hire_start_date||'', takeover_date:oldInactive.takeover_date||imp.takeover_date||'', crm_done_at:oldInactive.crm_done_at||'', id: oldInactive.id||Date.now()+i+Math.random(), records: oldInactive.records||[]}); added++; }
     else{ merged.push({...imp, id: Date.now()+i+Math.random(), records: []}); added++; }
   });
   const mergedIds = new Set(merged.map(w=>w.id));
