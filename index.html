@@ -329,7 +329,7 @@ tbody td{padding:5px 8px;white-space:nowrap;max-width:130px;overflow:hidden;text
     <div class="cst cs-total"><div class="n" id="ina-total">0</div><div class="l">追蹤人數</div></div>
     <div class="cst cs-其他"><div class="n" id="ina-emps">0</div><div class="l">雇主數</div></div>
     <div class="cst cs-問題"><div class="n" id="ina-last">0</div><div class="l">本次移入</div></div>
-    <div style="margin-left:auto"><button class="btn btn-o btn-sm" onclick="exportInactiveCSV()">📤 匯出追蹤</button></div>
+    <div style="margin-left:auto;display:flex;gap:7px"><button class="btn btn-o btn-sm" onclick="refreshInactive()">重新讀取雲端</button><button class="btn btn-o btn-sm" onclick="exportInactiveCSV()">📤 匯出追蹤</button></div>
   </div>
   <div class="ctbar">
     <input type="text" id="iq" placeholder="🔍 搜尋姓名／雇主／證號" oninput="renderInactive()" style="width:230px">
@@ -663,7 +663,7 @@ function switchTab(name,el){
   if(name==='gantt')requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(buildGantt,30)));
   if(name==='fee')setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(initFee)),30);
   if(name==='crm')setTimeout(renderCRM,30);
-  if(name==='inactive')setTimeout(renderInactive,30);
+  if(name==='inactive')refreshInactive();
 }
 function toggleSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sb-ov').classList.toggle('open');}
 function updateStats(){
@@ -1051,7 +1051,22 @@ function renderFeeTable(){
 function feeTblCk(m){fActiveM=m;renderFeeChart();document.querySelectorAll('.ftbl tbody tr').forEach(tr=>tr.classList.toggle('fa',tr.dataset.m===m));const d=FEE_DATA.find(x=>x.month===m);if(d){showDrill(d);document.getElementById('f-c1').textContent=d.cnt_1800;document.getElementById('f-c2').textContent=d.cnt_1700;document.getElementById('f-c3').textContent=d.cnt_1500;}}
 function exportFeeCSV(){dlCSV('﻿月份,人數,NT$900人數,NT$850人數,NT$750人數,月合計\n'+FEE_DATA.map(d=>[d.month,d.workers,d.cnt_1800,d.cnt_1700,d.cnt_1500,d.total].join(',')).join('\n'),'fee_'+isoDate()+'.csv');showToast('📤 服務費CSV已匯出');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+let inactiveRefreshing=false;
+async function refreshInactive(){
+  if(inactiveRefreshing)return;
+  if(!db){renderInactive();return;}
+  inactiveRefreshing=true;
+  try{
+    const snap=await db.collection(INACTIVE_COL).get({source:'server'});
+    inactiveWorkers=cleanWorkerList(snap.docs.map(d=>d.data()));
+    lastInactiveBatchCount=0;
+    renderInactive();
+    showFbSt('已讀取最新追蹤名單');
+  }catch(e){showToast('無法讀取最新追蹤資料，請稍後重試');}
+  finally{inactiveRefreshing=false;}
+}
 function renderInactive(){
+  inactiveWorkers=cleanWorkerList(inactiveWorkers);
   const q=(document.getElementById('iq').value||'').toLowerCase(),sort=document.getElementById('isrt').value;
   let rows=inactiveWorkers.map((w,i)=>({w,i}));
   if(q)rows=rows.filter(({w})=>[w.name_en,w.name_zh,w.employer,w.last_employer,w.passport,w.resident_id,w.permit_no,w.salesman].some(v=>(v||'').toLowerCase().includes(q)));
