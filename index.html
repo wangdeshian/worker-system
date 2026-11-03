@@ -404,7 +404,7 @@ const COL = 'workers';
 const INACTIVE_COL = 'inactive_workers';
 
 function docId(w){const k=(w.resident_id||w.passport||String(w.id)).trim();return k.replace(/[^a-zA-Z0-9_-]/g,'_')||'id_'+w.id;}
-function inactiveDocId(w){const k=inactiveTrackKey(w)||docId(w);return k.replace(/[^a-zA-Z0-9_-]/g,'_')||docId(w);}
+function inactiveDocId(w){return encodeURIComponent(inactiveTrackKey(w)||docId(w));}
 function showFbSt(msg,tp='ok'){const el=document.getElementById('fbst');el.innerHTML='<span class="fbdot '+(tp==='err'?'err':tp==='sync'?'syn':'')+'"></span>'+msg;el.classList.add('show');if(tp!=='sync')setTimeout(()=>el.classList.remove('show'),2500);}
 
 async function fbSave(w){if(!db)return;try{await db.collection(COL).doc(docId(w)).set(w);showFbSt('已同步');}catch(e){showFbSt('同步失敗','err');}}
@@ -528,7 +528,12 @@ function normId(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/
 function workerKey(w){return normId(w.resident_id)||normId(w.passport)||'';}
 function normText(v){return String(v||'').trim().toUpperCase().replace(/[\s　\-_.()（）/／]/g,'');}
 function workerNameKey(w){return normText(w.name_zh)||normText(w.name_en)||'';}
-function workerEmployerKey(w){return normText(w.employer||w.last_employer)||'';}
+function employerNameKey(value){
+  const name=String(value||'').trim().replace(/^[A-Za-z]{1,3}\d{3,6}\s+/,'')
+    .replace(/[（(]\s*(?:接|承接|初招|重招|遞|遞補)\s*[:：]?\s*[）)]/g,'');
+  return normText(name);
+}
+function workerEmployerKey(w){return employerNameKey(w.employer||w.last_employer);}
 function workerFallbackKey(w){const n=workerNameKey(w),e=workerEmployerKey(w);return n&&e?n+'|'+e:'';}
 function inactiveTrackKey(w){const emp=workerEmployerKey(w),wk=workerKey(w);if(wk&&emp)return wk+'|EMP|'+emp;const fk=workerFallbackKey(w);return fk?'FB|'+fk:'';}
 function sameWorker(a,b){const ak=workerKey(a),bk=workerKey(b);if(ak&&bk&&ak===bk)return true;const af=workerFallbackKey(a),bf=workerFallbackKey(b);return !!af&&af===bf;}
